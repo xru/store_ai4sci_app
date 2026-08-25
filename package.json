@@ -1,0 +1,18 @@
+{
+  "name": "ai4sci-app-store",
+  "version": "0.1.0",
+  "description": "AI for Science Tech Prototype App Store — Cloudflare-first",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:pages": "wrangler pages deploy public",
+    "db:create": "wrangler d1 create ai4sci-db",
+    "db:migrate": "wrangler d1 migrations apply ai4sci-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply ai4sci-db --local",
+    "db:seed": "wrangler d1 execute ai4sci-db --remote --file=seed.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
