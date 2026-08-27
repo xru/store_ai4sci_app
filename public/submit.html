@@ -34,8 +34,8 @@
     <div id="auth-check" class="note">Checking login status…</div>
     <form id="submit-form" style="display:none">
       <div class="row">
-        <div><label>App Title *</label><input name="title" required placeholder="e.g. ProteinFold AI"></div>
-        <div><label>URL Slug *</label><input name="slug" required placeholder="protein-fold-ai"></div>
+        <div><label>App Title *</label><input name="title" id="f-title" required placeholder="e.g. ProteinFold AI" oninput="autoSlug()"></div>
+        <div><label>URL Slug * <span style="font-size:11px;color:var(--muted)">(auto from title or pick below)</span></label><input name="slug" id="f-slug" required list="slug-options" placeholder="auto-generated..." onchange="slugEdited=true"><datalist id="slug-options"></datalist></div>
       </div>
       <label>Subtitle</label><input name="subtitle" placeholder="Short tagline">
       <label>Categories * <span class="hint">(select one or more)</span></label>
@@ -59,6 +59,31 @@
   <script>
     let selectedCats = [];
 
+    let slugEdited = false;
+    async function loadSlugSuggestions() {
+      try {
+        const res = await fetch('/config/slug-suggestions.json');
+        const data = await res.json();
+        const dl = document.getElementById('slug-options');
+        (data.slug_patterns || []).forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s;
+          dl.appendChild(opt);
+        });
+      } catch(e) { console.warn('Could not load slug suggestions', e); }
+    }
+    function slugify(text) {
+      return text.toLowerCase().trim()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+    function autoSlug() {
+      if (slugEdited) return;
+      const title = document.getElementById('f-title').value;
+      document.getElementById('f-slug').value = slugify(title);
+    }
     async function checkAuth() {
       const res = await fetch('/api/me');
       const data = await res.json();
@@ -112,6 +137,7 @@
         alert('Submission failed. Please try again.');
       }
     });
+    loadSlugSuggestions();
     checkAuth();
   </script>
 </body>

@@ -1,0 +1,20 @@
+{
+  "slug_patterns": [
+    "protein-fold-ai",
+    "mol-design-lab",
+    "climate-sim-lite",
+    "ai-drug-discovery",
+    "genomic-analysis",
+    "crystal-structure-predictor",
+    "neuroscience-viz",
+    "quantum-simulator",
+    "protein-engine",
+    "climate-predict",
+    "ai-materials-screening",
+    "enzyme-designer",
+    "molecular-dynamics",
+    "spectra-analyzer",
+    "cell-segmentation",
+    "pathogen-tracker"
+  ]
+}

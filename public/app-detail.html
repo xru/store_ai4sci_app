@@ -35,6 +35,11 @@
     .review{padding:12px 0;border-bottom:1px solid var(--border)}
     .review .stars{color:var(--gold)}
   </style>
+  <meta name="description" id="meta-desc" content="Explore AI for Science prototype applications on ai4sci.app.">
+  <link rel="canonical" id="canonical" href="https://ai4sci.app/">
+  <meta property="og:title" content="AI for Science App — ai4sci.app">
+  <meta property="og:description" content="Explore AI-powered science prototype applications.">
+  <meta property="og:type" content="website">
 </head>
 <body>
   <nav>
@@ -96,6 +101,8 @@
       if (appData.error) { document.body.innerHTML = '<div class="detail"><h1>App not found</h1></div>'; return; }
 
       const app = appData.app, tier = appData.user_tier;
+      document.getElementById('meta-desc').setAttribute('content', app.summary);
+      document.getElementById('canonical').setAttribute('href', 'https://ai4sci.app/apps/' + app.slug);
       document.getElementById('page-title').textContent = `${app.title} — ai4sci.app`;
       document.getElementById('app-title').textContent = app.title;
       document.getElementById('app-subtitle').textContent = app.subtitle || '';
