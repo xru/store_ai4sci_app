@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing — ai4sci.app</title>
+  <meta name="description" content="Free browsing, Pro details, and Pro+ deep access. Join the waiting list for early Pro+ access.">
+  <style>
+    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;--green:#4ade80}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text)}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+    .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:24px;align-items:center}
+    .nav-links a{color:var(--muted);font-size:14px;text-decoration:none}
+    .plans{max-width:1000px;margin:0 auto;padding:60px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .plan{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center}
+    .plan.featured{border-color:var(--accent);position:relative}
+    .plan.featured::after{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:12px;padding:4px 12px;border-radius:12px}
+    .plan h2{font-size:20px;margin-bottom:8px}
+    .price{font-size:42px;font-weight:800;margin:16px 0}
+    .price small{font-size:16px;font-weight:400;color:var(--muted)}
+    .plan ul{list-style:none;margin:24px 0;text-align:left}
+    .plan li{padding:8px 0;color:var(--muted);font-size:14px;border-bottom:1px solid var(--border)}
+    .plan li::before{content:'✓ ';color:var(--green)}
+    .btn{display:block;padding:12px;border-radius:8px;text-align:center;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;text-decoration:none}
+    .btn-free{background:var(--border);color:var(--text)}
+    .btn-pro{background:var(--accent);color:#fff}
+    .btn-proplus{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+    .wl-input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;margin-bottom:8px}
+    .wl-msg{margin-top:8px;font-size:13px;color:var(--muted)}
+    @media(max-width:768px){.plans{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">ai4sci.app</a>
+    <div class="nav-links">
+      <a href="/apps">Browse</a>
+      <a href="/submit">Submit</a>
+      <a href="/api/auth/login">Sign in</a>
+    </div>
+  </nav>
+  <div class="plans">
+    <div class="plan">
+      <h2>Free</h2>
+      <div class="price">$0<small>/forever</small></div>
+      <ul>
+        <li>Browse all apps</li>
+        <li>View summaries</li>
+        <li>Search & filter</li>
+        <li>Category browsing</li>
+      </ul>
+      <a href="/" class="btn btn-free">Start Browsing</a>
+    </div>
+    <div class="plan featured">
+      <h2>Pro</h2>
+      <div class="price">$9<small>/month</small></div>
+      <ul>
+        <li>Everything in Free</li>
+        <li>Detailed descriptions</li>
+        <li>Tech stack info</li>
+        <li>Demo links & screenshots</li>
+        <li>Submit reviews</li>
+      </ul>
+      <a href="/api/auth/login" class="btn btn-pro">Sign in to Upgrade</a>
+    </div>
+    <div class="plan">
+      <h2>Pro+</h2>
+      <div class="price">$29<small>/month</small></div>
+      <ul>
+        <li>Everything in Pro</li>
+        <li>Source code access</li>
+        <li>Dataset links</li>
+        <li>Reproduction guides</li>
+        <li>Benchmark comparisons</li>
+      </ul>
+      <div id="waitlist-box">
+        <input id="wl-email" type="email" class="wl-input" placeholder="your@email.com">
+        <button onclick="joinWaitlist()" class="btn btn-proplus">Join Waiting List</button>
+        <p id="wl-msg" class="wl-msg"></p>
+      </div>
+    </div>
+  </div>
+  <script>
+    async function joinWaitlist() {
+      var email = document.getElementById('wl-email').value.trim();
+      var msg = document.getElementById('wl-msg');
+      if (!email || email.indexOf('@') === -1) {
+        msg.textContent = 'Please enter a valid email';
+        msg.style.color = '#ef4444';
+        return;
+      }
+      var res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, source: 'pricing' })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        msg.textContent = "You're on the list! We'll notify you when Pro+ launches.";
+        msg.style.color = 'var(--green)';
+        document.getElementById('wl-email').value = '';
+      } else {
+        msg.textContent = 'Something went wrong. Try again?';
+        msg.style.color = '#ef4444';
+      }
+    }
+  </script>
+</body>
+</html>

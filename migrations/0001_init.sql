@@ -2,7 +2,7 @@
 -- Access tiers: guest=0, gmail=1, paid=2
 
 CREATE TABLE IF NOT EXISTS users (
-  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))),
+  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   google_sub    TEXT UNIQUE,
   email         TEXT NOT NULL,
   name          TEXT,
@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS subscriptions (
-  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))),
+  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   user_id       TEXT NOT NULL REFERENCES users(id),
   stripe_customer_id  TEXT,
   stripe_sub_id       TEXT,
@@ -32,20 +32,20 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE TABLE IF NOT EXISTS apps (
-  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))),
+  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   slug          TEXT UNIQUE NOT NULL,
   title         TEXT NOT NULL,
   subtitle      TEXT,
   category_id   TEXT REFERENCES categories(id),
-  summary       TEXT NOT NULL,           -- guest-visible (L1)
-  description   TEXT NOT NULL,           -- login-visible (L2)
-  deep_info     TEXT,                    -- paid-only (L3)
-  tech_stack    TEXT,                    -- L2+
-  demo_url      TEXT,                    -- L2+
-  repo_url      TEXT,                    -- L3
-  dataset_url   TEXT,                    -- L3
-  report_url    TEXT,                    -- L3
-  cover_r2_key  TEXT,                    -- R2 asset key
+  summary       TEXT NOT NULL,
+  description   TEXT NOT NULL,
+  deep_info     TEXT,
+  tech_stack    TEXT,
+  demo_url      TEXT,
+  repo_url      TEXT,
+  dataset_url   TEXT,
+  report_url    TEXT,
+  cover_r2_key  TEXT,
   featured      INTEGER DEFAULT 0,
   status        TEXT NOT NULL DEFAULT 'published',
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS apps (
 );
 
 CREATE TABLE IF NOT EXISTS app_screenshots (
-  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16))),
+  id            TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   app_id        TEXT NOT NULL REFERENCES apps(id),
   r2_key        TEXT NOT NULL,
   sort_order    INTEGER DEFAULT 0

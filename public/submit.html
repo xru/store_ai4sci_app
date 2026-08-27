@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Submit Your App — ai4sci.app</title>
+  <style>
+    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:40px 24px}
+    .wrap{max-width:640px;margin:0 auto}
+    h1{font-size:28px;margin-bottom:8px}
+    p.sub{color:var(--muted);margin-bottom:32px}
+    label{display:block;font-size:14px;margin:16px 0 6px;color:var(--muted)}
+    input,textarea,select{width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px}
+    textarea{min-height:80px;resize:vertical}
+    .row{display:flex;gap:16px}
+    .row>div{flex:1}
+    button{margin-top:24px;width:100%;padding:14px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:16px;cursor:pointer}
+    button:hover{opacity:.9}
+    .note{margin-top:16px;padding:12px;border-radius:8px;background:rgba(99,102,241,.1);border:1px solid var(--accent);font-size:13px;color:var(--muted)}
+    a.login{color:var(--accent)}
+    .cat-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+    .cat-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:var(--card);font-size:14px;cursor:pointer;user-select:none}
+    .cat-chip.active{border-color:var(--accent);background:rgba(99,102,241,.18)}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Submit Your AI for Science App</h1>
+    <p class="sub">Share your tech prototype with the AI for Science community. Submissions are reviewed before publishing.</p>
+    <div id="auth-check" class="note">Checking login status…</div>
+    <form id="submit-form" style="display:none">
+      <div class="row">
+        <div><label>App Title *</label><input name="title" required placeholder="e.g. ProteinFold AI"></div>
+        <div><label>URL Slug *</label><input name="slug" required placeholder="protein-fold-ai"></div>
+      </div>
+      <label>Subtitle</label><input name="subtitle" placeholder="Short tagline">
+      <label>Categories * <span class="hint">(select one or more)</span></label>
+      <div class="cat-grid" id="category-chips"></div>
+      <input type="hidden" name="category_ids" id="category_ids">
+      <label>Summary * (guest-visible)</label>
+      <textarea name="summary" required placeholder="One-sentence description visible to all visitors"></textarea>
+      <label>Detailed Description * (login-visible)</label>
+      <textarea name="description" required placeholder="Full description visible to logged-in users"></textarea>
+      <label>Tech Stack</label><input name="tech_stack" placeholder="Python, PyTorch, Cloudflare Workers">
+      <label>Demo URL</label><input name="demo_url" placeholder="https://demo...">
+      <label>Deep Info (paid-visible)</label>
+      <textarea name="deep_info" placeholder="Source code details, reproduction steps, benchmarks — visible to Pro+ subscribers"></textarea>
+      <div class="row">
+        <div><label>Repo URL</label><input name="repo_url" placeholder="github.com/..."></div>
+        <div><label>Dataset URL</label><input name="dataset_url" placeholder="https://..."></div>
+      </div>
+      <button type="submit">Submit for Review</button>
+    </form>
+  </div>
+  <script>
+    let selectedCats = [];
+
+    async function checkAuth() {
+      const res = await fetch('/api/me');
+      const data = await res.json();
+      const el = document.getElementById('auth-check');
+      if (!data.user) {
+        el.innerHTML = 'You must be signed in to submit. <a class="login" href="/api/auth/login">Sign in with Google</a>';
+      } else {
+        el.style.display = 'none';
+        document.getElementById('submit-form').style.display = 'block';
+        await loadCategories();
+      }
+    }
+    async function loadCategories() {
+      const res = await fetch('/api/categories');
+      const data = await res.json();
+      const box = document.getElementById('category-chips');
+      box.innerHTML = '';
+      (data.categories || []).forEach(c => {
+        const chip = document.createElement('div');
+        chip.className = 'cat-chip';
+        chip.dataset.id = c.id;
+        chip.textContent = `${c.icon||''} ${c.name}`;
+        chip.onclick = () => {
+          const i = selectedCats.indexOf(c.id);
+          if (i === -1) selectedCats.push(c.id); else selectedCats.splice(i, 1);
+          chip.classList.toggle('active');
+          syncHidden();
+        };
+        box.appendChild(chip);
+      });
+    }
+    function syncHidden() {
+      document.getElementById('category_ids').value = JSON.stringify(selectedCats);
+    }
+    document.getElementById('submit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!selectedCats.length) { alert('Please choose at least one category.'); return; }
+      const fd = new FormData(e.target);
+      const body = Object.fromEntries(fd.entries());
+      body.category_ids = JSON.parse(body.category_ids || '[]');
+      delete body.category_id;
+      const res = await fetch('/api/submit', {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        alert('Submitted! Your app is pending review.');
+        e.target.reset();
+        selectedCats = [];
+        document.querySelectorAll('.cat-chip').forEach(ch => ch.classList.remove('active'));
+      } else {
+        alert('Submission failed. Please try again.');
+      }
+    });
+    checkAuth();
+  </script>
+</body>
+</html>

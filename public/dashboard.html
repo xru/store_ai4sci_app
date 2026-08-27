@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Dashboard — ai4sci.app</title>
+  <style>
+    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;--green:#4ade80;--gold:#fbbf24}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text)}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+    .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:24px;align-items:center}
+    .nav-links a{color:var(--muted);font-size:14px;text-decoration:none}
+    .dash{max-width:800px;margin:0 auto;padding:40px 24px}
+    h1{font-size:28px;margin-bottom:24px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:16px}
+    .card h2{font-size:16px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+    .tier-pill{display:inline-block;padding:4px 12px;border-radius:6px;font-size:13px;font-weight:600}
+    .tier-1{background:rgba(251,191,36,.15);color:var(--gold)}
+    .tier-2{background:rgba(99,102,241,.15);color:var(--accent)}
+    .sub-item{padding:12px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+    .status{font-size:12px;padding:2px 8px;border-radius:4px}
+    .status-pending{background:rgba(251,191,36,.15);color:var(--gold)}
+    .status-published{background:rgba(74,222,128,.15);color:var(--green)}
+    .status-rejected{background:rgba(239,68,68,.15);color:#ef4444}
+    .btn{display:inline-block;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600}
+    .btn-accent{background:var(--accent);color:#fff}
+    .empty{color:var(--muted);font-size:14px;padding:16px 0}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">ai4sci.app</a>
+    <div class="nav-links">
+      <a href="/apps">Browse</a>
+      <a href="/submit" class="btn btn-accent">Submit App</a>
+      <a href="/api/auth/logout" style="color:#ef4444">Sign out</a>
+    </div>
+  </nav>
+  <div class="dash">
+    <h1>Your Dashboard</h1>
+    <div id="not-logged-in" class="card" style="display:none">
+      <p style="color:var(--muted)">Please <a href="/api/auth/login" style="color:var(--accent)">sign in with Google</a> to view your dashboard.</p>
+    </div>
+    <div id="dash-content" style="display:none">
+      <div class="card">
+        <h2>Account</h2>
+        <p id="user-email" style="font-size:18px;margin-bottom:8px"></p>
+        <span id="tier-pill" class="tier-pill"></span>
+        <div id="upgrade-prompt" style="margin-top:12px;display:none">
+          <a href="/pricing" class="btn btn-accent">Upgrade to Pro+</a>
+        </div>
+      </div>
+      <div class="card">
+        <h2>My Submissions</h2>
+        <div id="submissions"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    async function load() {
+      const [meRes, subRes] = await Promise.all([
+        fetch('/api/me'), fetch('/api/my-submissions')
+      ]);
+      const me = await meRes.json();
+      if (!me.user) {
+        document.getElementById('not-logged-in').style.display = 'block';
+        return;
+      }
+      document.getElementById('dash-content').style.display = 'block';
+      document.getElementById('user-email').textContent = me.user.email;
+      const pill = document.getElementById('tier-pill');
+      pill.textContent = me.user.tier === 2 ? 'Pro+ Member' : 'Pro Member';
+      pill.className = `tier-pill tier-${me.user.tier}`;
+      if (me.user.tier < 2) document.getElementById('upgrade-prompt').style.display = 'block';
+
+      const subData = await subRes.json();
+      const subs = subData.submissions || [];
+      const el = document.getElementById('submissions');
+      el.innerHTML = subs.length
+        ? subs.map(s => `<div class="sub-item"><div><strong>${s.title}</strong><br><span style="color:var(--muted);font-size:13px">${new Date(s.created_at).toLocaleDateString()}</span></div><span class="status status-${s.status}">${s.status}</span></div>`).join('')
+        : '<div class="empty">No submissions yet. <a href="/submit" style="color:var(--accent)">Submit your first app →</a></div>';
+    }
+    load();
+  </script>
+</body>
+</html>

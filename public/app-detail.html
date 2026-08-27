@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">App — ai4sci.app</title>
+  <style>
+    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;--gold:#fbbf24;--green:#4ade80}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text)}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+    .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:24px;align-items:center}
+    .nav-links a{color:var(--muted);font-size:14px;text-decoration:none}
+    .detail{max-width:800px;margin:0 auto;padding:40px 24px}
+    .hero-cover{height:200px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:24px}
+    h1{font-size:32px;margin-bottom:4px}
+    .subtitle{color:var(--accent2);font-size:16px;margin-bottom:8px}
+    .cats{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+    .cat-tag{font-size:13px;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:4px 12px;text-decoration:none}
+    .cat-tag:hover{border-color:var(--accent)}
+    .badges{display:flex;gap:8px;margin:12px 0}
+    .tier-badge{font-size:12px;padding:4px 10px;border-radius:6px}
+    .section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin:16px 0}
+    .section h2{font-size:16px;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .locked{display:flex;align-items:center;gap:12px;padding:16px;border-radius:8px;background:rgba(251,191,36,.1);border:1px solid var(--gold);margin-top:8px}
+    .locked.paid{background:rgba(99,102,241,.1);border-color:var(--accent)}
+    .locked-icon{font-size:24px}
+    .btn{display:inline-block;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600}
+    .btn-accent{background:var(--accent);color:#fff}
+    .btn-gold{background:var(--gold);color:#000}
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .meta-grid a{color:var(--accent);word-break:break-all}
+    .reviews{margin-top:8px}
+    .review{padding:12px 0;border-bottom:1px solid var(--border)}
+    .review .stars{color:var(--gold)}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">ai4sci.app</a>
+    <div class="nav-links" id="nav">
+      <a href="/apps">Browse</a>
+      <a href="/submit">Submit</a>
+      <a href="/pricing">Pricing</a>
+    </div>
+  </nav>
+  <div class="detail">
+    <div class="hero-cover">🧪</div>
+    <h1 id="app-title">Loading…</h1>
+    <p class="subtitle" id="app-subtitle"></p>
+    <div class="cats" id="app-cats"></div>
+    <div class="badges" id="badges"></div>
+
+    <div class="section"><h2>Overview</h2><p id="app-summary"></p></div>
+
+    <div id="detail-section" class="section" style="display:none">
+      <h2>Detailed Description</h2>
+      <p id="app-description"></p>
+      <div class="meta-grid" id="tech-meta"></div>
+    </div>
+    <div id="detail-locked" class="locked" style="display:none">
+      <span class="locked-icon">🔐</span>
+      <div><strong>Sign in to view detailed description, tech stack, and demo links.</strong><br>
+      <a href="/api/auth/login" class="btn btn-gold" style="margin-top:8px">Sign in with Google</a></div>
+    </div>
+
+    <div id="deep-section" class="section" style="display:none">
+      <h2>Deep Access (Pro+)</h2>
+      <div id="app-deep"></div>
+      <div class="meta-grid" id="deep-meta"></div>
+    </div>
+    <div id="deep-locked" class="locked paid" style="display:none;flex-direction:column;align-items:stretch">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span class="locked-icon">🔒</span>
+        <strong>Deep access (Pro+) is coming soon. Join the waiting list to get early access.</strong>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="detail-wl-email" type="email" placeholder="your@email.com" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1e293b;background:#0a0e1a;color:#e2e8f0;font-size:14px">
+        <button onclick="joinDetailWaitlist()" class="btn btn-accent" style="white-space:nowrap">Join List</button>
+      </div>
+      <p id="detail-wl-msg" style="margin-top:8px;font-size:13px;color:#94a3b8"></p>
+    </div>
+
+    <div class="section"><h2>Reviews</h2><div class="reviews" id="reviews"><p style="color:var(--muted)">Loading reviews…</p></div></div>
+  </div>
+  <script>
+    const slug = location.pathname.replace('/apps/','').replace('.html','');
+    async function load() {
+      const [appRes, revRes, meRes] = await Promise.all([
+        fetch(`/api/apps/${slug}`), fetch(`/api/apps/${slug}/reviews`), fetch('/api/me')
+      ]);
+      const appData = await appRes.json();
+      const revData = await revRes.json();
+      const meData = await meRes.json();
+      if (appData.error) { document.body.innerHTML = '<div class="detail"><h1>App not found</h1></div>'; return; }
+
+      const app = appData.app, tier = appData.user_tier;
+      document.getElementById('page-title').textContent = `${app.title} — ai4sci.app`;
+      document.getElementById('app-title').textContent = app.title;
+      document.getElementById('app-subtitle').textContent = app.subtitle || '';
+      document.getElementById('app-summary').textContent = app.summary;
+
+      // Render multiple category tags (from the join table)
+      const cats = document.getElementById('app-cats');
+      cats.innerHTML = '';
+      (app.categories || []).forEach(c => {
+        const tag = document.createElement('a');
+        tag.className = 'cat-tag';
+        tag.href = `/?category=${c.slug}`;
+        tag.textContent = `${c.icon || ''} ${c.name}`;
+        cats.appendChild(tag);
+      });
+
+      const badges = document.getElementById('badges');
+      if (tier >= 1 && app.description) {
+        document.getElementById('detail-section').style.display = 'block';
+        document.getElementById('app-description').textContent = app.description;
+        const meta = document.getElementById('tech-meta');
+        if (app.tech_stack) meta.innerHTML += `<div>Tech: ${app.tech_stack}</div>`;
+        if (app.demo_url) meta.innerHTML += `<div>Demo: <a href="${app.demo_url}">${app.demo_url}</a></div>`;
+      } else {
+        document.getElementById('detail-locked').style.display = 'flex';
+      }
+
+      if (tier >= 2 && app.deep_info) {
+        document.getElementById('deep-section').style.display = 'block';
+        document.getElementById('app-deep').textContent = app.deep_info;
+        const dm = document.getElementById('deep-meta');
+        if (app.repo_url) dm.innerHTML += `<div>Repo: <a href="${app.repo_url}">${app.repo_url}</a></div>`;
+        if (app.dataset_url) dm.innerHTML += `<div>Dataset: <a href="${app.dataset_url}">${app.dataset_url}</a></div>`;
+      } else if (tier >= 1) {
+        document.getElementById('deep-locked').style.display = 'flex';
+      }
+
+      const revs = revData.reviews || [];
+      document.getElementById('reviews').innerHTML = revs.length
+        ? revs.map(r => `<div class="review"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><span style="color:var(--muted);font-size:13px">${r.email}</span><p style="margin-top:4px">${r.comment||''}</p></div>`).join('')
+        : '<p style="color:var(--muted)">No reviews yet.</p>';
+
+      const nav = document.getElementById('nav');
+      if (meData.user) {
+        nav.innerHTML += `<span style="color:var(--muted);font-size:13px">tier: ${meData.user.tier}</span><a href="/dashboard">Dashboard</a>`;
+      } else {
+        nav.innerHTML += `<a href="/api/auth/login" style="color:var(--accent)">Sign in</a>`;
+      }
+    }
+
+    async function joinDetailWaitlist() {
+      var email = document.getElementById('detail-wl-email').value.trim();
+      var msg = document.getElementById('detail-wl-msg');
+      if (!email || email.indexOf('@') === -1) {
+        msg.textContent = 'Please enter a valid email'; msg.style.color = '#ef4444'; return;
+      }
+      var res = await fetch('/api/waitlist', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, source: 'app-detail' })
+      });
+      var data = await res.json();
+      if (data.ok) {
+        msg.textContent = "You're on the list! We'll email you when Pro+ launches.";
+        msg.style.color = '#4ade80';
+      } else {
+        msg.textContent = 'Something went wrong.'; msg.style.color = '#ef4444';
+      }
+    }
+    load();
+  </script>
+</body>
+</html>
