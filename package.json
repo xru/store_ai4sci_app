@@ -13,6 +13,6 @@
     "db:seed": "wrangler d1 execute ai4sci-db --remote --file=seed.sql"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.127.1"
   }
 }

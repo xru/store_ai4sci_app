@@ -1,41 +1,33 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ai4sci-app-store",
-  "main": "src/index.ts",
-  "compatibility_date": "2024-09-23",
-
-  "assets": {
-    "directory": "./public",
-    "binding": "STATIC"
-  },
-
-  "vars": {
-    "SITE_NAME": "ai4sci.app — AI for Science App Store",
-    "ENVIRONMENT": "development"
-  },
-
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "ai4sci-db",
-      "database_id": "1807decc-b242-4a02-95ce-70fd2eac8ac3"
-    }
-  ],
-
-  "r2_buckets": [
-    {
-      "binding": "BUCKET",
-      "bucket_name": "ai4sci-assets"
-    }
-  ],
-
-  "secrets": [
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
-    "SESSION_SECRET"
-  ],
-
-  "routes": [
-    { "pattern": "ai4sci.app", "custom_domain": true }
-  ]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "ai4sci-app-store",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-09-23",
+	"assets": {
+		"directory": "./public",
+		"binding": "STATIC"
+	},
+	"vars": {
+		"SITE_NAME": "ai4sci.app — AI for Science App Store",
+		"ENVIRONMENT": "production"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "ai4sci-db",
+			"database_id": "1807decc-b242-4a02-95ce-70fd2eac8ac3"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+			"bucket_name": "ai4sci-assets"
+		}
+	],
+	"routes": [
+		{
+			"pattern": "ai4sci.app",
+			"custom_domain": true
+		}
+	]
 }
