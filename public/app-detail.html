@@ -145,13 +145,31 @@
       'web-deployment':'Web Deployment','nlp':'NLP','reinforcement-learning':'Reinforcement Learning',
     };
     function t(k){ return (I18N[LANG]||I18N.en)[k] || k; }
-    function catName(c){ return CAT_EN[c.slug] || c.name; }
+    function catName(c){ return (LANG==='en' && CAT_EN[c.slug]) ? CAT_EN[c.slug] : c.name; }
 
     // Chinese content for app body fields, keyed by slug.
     // English comes from the DB; zh pages overlay these. Add rows as new apps ship.
-    const APP_ZH = {};
-    // Chinese overlay disabled — listing copy stays English.
-        // Return zh overlay if present and language is zh, else the DB (english) value.
+    const APP_ZH = {
+      'deploykit': {
+        subtitle: '网站建好后的零配置一键部署',
+        summary: '把你的网站一键部署到 Cloudflare，零配置上线。',
+        description: 'DeployKit 自动检测项目类型（React、Vue、纯静态），生成部署配置，一键推送到 Cloudflare Pages / Workers。附带自定义域名绑定、HTTPS 自动配置和部署状态实时监控。',
+        deep_info: '进阶部署模板（多环境、CI/CD、缓存策略）、自定义 Worker 脚本、CDN 配置指南，以及常见框架的完整适配教程。',
+      },
+      'nlp-skill-picker': {
+        subtitle: '按任务场景推荐 NLP 技能组合',
+        summary: '输入你的工作任务，自动推荐最合适的 NLP 技能（Skill）组合。',
+        description: 'NLP Skill Picker 内置文本分类、摘要、翻译、问答、实体抽取等技能库。根据你的具体场景（客服、写作、数据分析）智能匹配最佳 Skill 组合，附调用示例和成本估算。',
+        deep_info: '完整 Skill 目录、技能组合模板、批量调用脚本、性能基准对比，以及各模型 API 接入文档。',
+      },
+      'rl-gym-trainer': {
+        subtitle: '强化学习 MVP 原型训练环境',
+        summary: '快速搭建强化学习实验，从 DQN 到 PPO 一键跑通 MVP 原型。',
+        description: 'RL-Gym Trainer 封装了主流强化学习算法，提供标准 Gymnasium 接口、可视化训练曲线和自动超参搜索。适合研究生快速验证 RL 论文思路，不需要从零搭环境。',
+        deep_info: '完整训练 notebook、预训练模型权重、基准数据集、自动调参脚本，以及云端 GPU 训练接入文档。',
+      },
+    };
+    // Return zh overlay if present and language is zh, else the DB (english) value.
     function appField(app, field){
       if (LANG === 'zh' && APP_ZH[app.slug] && APP_ZH[app.slug][field] != null) return APP_ZH[app.slug][field];
       return app[field] != null ? app[field] : '';

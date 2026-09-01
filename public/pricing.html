@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pricing — ai4sci.app</title>
-  <meta name="description" content="Free browsing, Pro details, and Pro+ deep access. Join the waiting list for early Pro+ access.">
+  <meta name="description" id="meta-desc" content="Free browsing, Pro details, and Pro+ deep access. Join the waiting list for early Pro+ access.">
   <style>
     :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;--green:#4ade80}
     *{margin:0;padding:0;box-sizing:border-box}
@@ -13,10 +13,12 @@
     .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
     .nav-links{display:flex;gap:24px;align-items:center}
     .nav-links a{color:var(--muted);font-size:14px;text-decoration:none}
+    .lang-btn{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:13px;cursor:pointer;line-height:1}
+    .lang-btn:hover{border-color:var(--accent);background:rgba(99,102,241,.1)}
     .plans{max-width:1000px;margin:0 auto;padding:60px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
     .plan{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center}
     .plan.featured{border-color:var(--accent);position:relative}
-    .plan.featured::after{content:'Most Popular';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:12px;padding:4px 12px;border-radius:12px}
+    .plan.featured::after{content:attr(data-badge);position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:12px;padding:4px 12px;border-radius:12px}
     .plan h2{font-size:20px;margin-bottom:8px}
     .price{font-size:42px;font-weight:800;margin:16px 0}
     .price small{font-size:16px;font-weight:400;color:var(--muted)}
@@ -40,76 +42,107 @@
   <nav>
     <a href="/" class="logo">ai4sci.app</a>
     <div class="nav-links">
-      <a href="/apps">Browse</a>
-      <a href="/submit">Submit</a>
-      <a href="/api/auth/login">Sign in</a>
+      <a href="/apps" id="nav-browse">Browse</a>
+      <a href="/submit" id="nav-submit">Submit</a>
+      <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">中文</button>
+      <a href="/api/auth/login" id="nav-signin">Sign in</a>
     </div>
   </nav>
   <div class="plans">
     <div class="plan">
       <h2>Free</h2>
-      <div class="price">$0<small>/forever</small></div>
-      <ul>
-        <li>Browse all apps</li>
-        <li>View summaries</li>
-        <li>Search & filter</li>
-        <li>Category browsing</li>
-      </ul>
-      <a href="/" class="btn btn-free">Start Browsing</a>
+      <div class="price">$0<small id="p-free-unit">/forever</small></div>
+      <ul id="free-feats"></ul>
+      <a href="/" class="btn btn-free" id="btn-free">Start Browsing</a>
     </div>
-    <div class="plan featured">
+    <div class="plan featured" data-badge="Most Popular">
       <h2>Pro</h2>
-      <div class="price">$9<small>/month</small></div>
-      <ul>
-        <li>Everything in Free</li>
-        <li>Detailed descriptions</li>
-        <li>Tech stack info</li>
-        <li>Demo links & screenshots</li>
-        <li>Submit reviews</li>
-      </ul>
-      <a href="/api/auth/login" class="btn btn-pro">Sign in to Upgrade</a>
+      <div class="price">$9<small id="p-pro-unit">/month</small></div>
+      <ul id="pro-feats"></ul>
+      <a href="/api/auth/login" class="btn btn-pro" id="btn-pro">Sign in to Upgrade</a>
     </div>
     <div class="plan">
       <h2>Pro+</h2>
-      <div class="price">$29<small>/month</small></div>
-      <ul>
-        <li>Everything in Pro</li>
-        <li>Source code access</li>
-        <li>Dataset links</li>
-        <li>Reproduction guides</li>
-        <li>Benchmark comparisons</li>
-      </ul>
+      <div class="price">$29<small id="p-proplus-unit">/month</small></div>
+      <ul id="proplus-feats"></ul>
       <div id="waitlist-box">
         <input id="wl-email" type="email" class="wl-input" placeholder="your@email.com">
-        <button onclick="joinWaitlist()" class="btn btn-proplus">Join Waiting List</button>
+        <button onclick="joinWaitlist()" class="btn btn-proplus" id="btn-wl">Join Waiting List</button>
         <p id="wl-msg" class="wl-msg"></p>
       </div>
     </div>
   </div>
   <script>
+    const PATH = location.pathname;
+    const isCN = PATH === '/cn/pricing' || /^\/cn\//.test(PATH);
+    let LANG = isCN ? 'zh' : 'en';
+    localStorage.setItem('ai4sci_lang', LANG);
+
+    const C = {
+      en: {
+        browse:'Browse', submit:'Submit', signin:'Sign in', badge:'Most Popular',
+        free:['Browse all apps','View summaries','Search & filter','Category browsing'],
+        pro:['Everything in Free','Detailed descriptions','Tech stack info','Demo links & screenshots','Submit reviews'],
+        proplus:['Everything in Pro','Source code access','Dataset links','Reproduction guides','Benchmark comparisons'],
+        btnFree:'Start Browsing', btnPro:'Sign in to Upgrade', btnWL:'Join Waiting List',
+        wlPh:'your@email.com', wlInvalid:'Please enter a valid email',
+        wlOk:"You're on the list! We'll notify you when Pro+ launches.", wlErr:'Something went wrong. Try again?',
+        forever:'/forever', month:'/month',
+        meta:'Free browsing, Pro details, and Pro+ deep access. Join the waiting list for early Pro+ access.',
+      },
+      zh: {
+        browse:'浏览', submit:'提交', signin:'登录', badge:'最受欢迎',
+        free:['浏览全部应用','查看摘要','搜索与筛选','分类浏览'],
+        pro:['免费版全部功能','详细描述','技术栈信息','演示链接与截图','提交评价'],
+        proplus:['Pro 全部功能','源代码访问','数据集链接','复现指南','基准对比'],
+        btnFree:'开始浏览', btnPro:'登录升级', btnWL:'加入等候名单',
+        wlPh:'你的邮箱@email.com', wlInvalid:'请输入有效的邮箱',
+        wlOk:'已加入名单！Pro+ 上线时我们会通知你。', wlErr:'出错了，再试一次？',
+        forever:'/永久', month:'/月',
+        meta:'免费浏览、Pro 详情、Pro+ 深度访问。加入等候名单抢先体验 Pro+。',
+      }
+    };
+    const T = C[LANG] || C.en;
+
+    function li(arr){ return arr.map(x=>`<li>${x}</li>`).join(''); }
+    function applyLang(){
+      document.documentElement.lang = LANG==='en' ? 'en' : 'zh-CN';
+      document.getElementById('lang-toggle').textContent = LANG==='en' ? '中文' : 'EN';
+      document.getElementById('nav-browse').textContent = T.browse;
+      document.getElementById('nav-submit').textContent = T.submit;
+      document.getElementById('nav-signin').textContent = T.signin;
+      document.querySelector('.plan.featured').setAttribute('data-badge', T.badge);
+      document.getElementById('free-feats').innerHTML = li(T.free);
+      document.getElementById('pro-feats').innerHTML = li(T.pro);
+      document.getElementById('proplus-feats').innerHTML = li(T.proplus);
+      document.getElementById('btn-free').textContent = T.btnFree;
+      document.getElementById('btn-pro').textContent = T.btnPro;
+      document.getElementById('btn-wl').textContent = T.btnWL;
+      document.getElementById('wl-email').placeholder = T.wlPh;
+      document.getElementById('p-free-unit').textContent = T.forever;
+      document.getElementById('p-pro-unit').textContent = T.month;
+      document.getElementById('p-proplus-unit').textContent = T.month;
+      document.getElementById('meta-desc').setAttribute('content', T.meta);
+    }
+    function toggleLang(){
+      location.href = LANG==='en' ? '/cn/pricing' : '/pricing';
+    }
+
     async function joinWaitlist() {
       var email = document.getElementById('wl-email').value.trim();
       var msg = document.getElementById('wl-msg');
-      if (!email || email.indexOf('@') === -1) {
-        msg.textContent = 'Please enter a valid email';
-        msg.style.color = '#ef4444';
-        return;
-      }
+      if (!email || email.indexOf('@') === -1) { msg.textContent = T.wlInvalid; msg.style.color = '#ef4444'; return; }
       var res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email, source: 'pricing' })
       });
       var data = await res.json();
       if (data.ok) {
-        msg.textContent = "You're on the list! We'll notify you when Pro+ launches.";
-        msg.style.color = 'var(--green)';
+        msg.textContent = T.wlOk; msg.style.color = 'var(--green)';
         document.getElementById('wl-email').value = '';
-      } else {
-        msg.textContent = 'Something went wrong. Try again?';
-        msg.style.color = '#ef4444';
-      }
+      } else { msg.textContent = T.wlErr; msg.style.color = '#ef4444'; }
     }
+    applyLang();
   </script>
 </body>
 </html>

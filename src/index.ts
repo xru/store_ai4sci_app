@@ -79,6 +79,11 @@ export default {
         } else if (cnApp) {
           assetPath = "/app-detail.html";
         }
+        // 中文镜像路由: /cn/<page> → 同一个 HTML (页面靠 /cn/ 前缀判断语言)
+        else if (path === "/cn") { assetPath = "/index.html"; }
+        else if (path === "/cn/pricing") { assetPath = "/pricing.html"; }
+        else if (path === "/cn/submit") { assetPath = "/submit.html"; }
+        else if (path === "/cn/apps") { assetPath = "/index.html"; }
         const assetUrl = new URL(assetPath, url.origin);
         const assetResp = await env.STATIC.fetch(new Request(assetUrl.toString()));
         if (assetResp.status === 404) {

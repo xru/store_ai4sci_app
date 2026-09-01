@@ -6,10 +6,16 @@
   <meta name="robots" content="noindex">
   <title>Submit Your App — ai4sci.app</title>
   <style>
-    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1}
+    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6}
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:40px 24px}
-    .wrap{max-width:640px;margin:0 auto}
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text)}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+    .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:24px;align-items:center}
+    .nav-links a{color:var(--muted);font-size:14px;text-decoration:none}
+    .lang-btn{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:13px;cursor:pointer;line-height:1}
+    .lang-btn:hover{border-color:var(--accent);background:rgba(99,102,241,.1)}
+    .wrap{max-width:640px;margin:0 auto;padding:40px 24px}
     h1{font-size:28px;margin-bottom:8px}
     p.sub{color:var(--muted);margin-bottom:32px}
     label{display:block;font-size:14px;margin:16px 0 6px;color:var(--muted)}
@@ -28,68 +34,124 @@
   </style>
 </head>
 <body>
+  <nav>
+    <a href="/" class="logo">ai4sci.app</a>
+    <div class="nav-links">
+      <a href="/apps" id="nav-browse">Browse</a>
+      <a href="/pricing" id="nav-pricing">Pricing</a>
+      <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">中文</button>
+    </div>
+  </nav>
   <div class="wrap">
-    <h1>Submit Your AI for Science App</h1>
-    <p class="sub">Share your tech prototype with the AI for Science community. Submissions are reviewed before publishing.</p>
+    <h1 id="h-title">Submit Your AI for Science App</h1>
+    <p class="sub" id="h-sub">Share your tech prototype with the AI for Science community. Submissions are reviewed before publishing.</p>
     <div id="auth-check" class="note">Checking login status…</div>
     <form id="submit-form" style="display:none">
       <div class="row">
-        <div><label>App Title *</label><input name="title" id="f-title" required placeholder="e.g. ProteinFold AI" oninput="autoSlug()"></div>
-        <div><label>URL Slug * <span style="font-size:11px;color:var(--muted)">(auto from title or pick below)</span></label><input name="slug" id="f-slug" required list="slug-options" placeholder="auto-generated..." onchange="slugEdited=true"><datalist id="slug-options"></datalist></div>
+        <div><label id="l-title">App Title *</label><input name="title" id="f-title" required placeholder="e.g. ProteinFold AI" oninput="autoSlug()"></div>
+        <div><label id="l-slug">URL Slug * <span style="font-size:11px;color:var(--muted)">(auto from title or pick below)</span></label><input name="slug" id="f-slug" required list="slug-options" placeholder="auto-generated..." onchange="slugEdited=true"><datalist id="slug-options"></datalist></div>
       </div>
-      <label>Subtitle</label><input name="subtitle" placeholder="Short tagline">
-      <label>Categories * <span class="hint">(select one or more)</span></label>
+      <label id="l-subtitle">Subtitle</label><input name="subtitle" placeholder="Short tagline">
+      <label id="l-cats">Categories * <span class="hint">(select one or more)</span></label>
       <div class="cat-grid" id="category-chips"></div>
       <input type="hidden" name="category_ids" id="category_ids">
-      <label>Summary * (guest-visible)</label>
+      <label id="l-summary">Summary * (guest-visible)</label>
       <textarea name="summary" required placeholder="One-sentence description visible to all visitors"></textarea>
-      <label>Detailed Description * (login-visible)</label>
+      <label id="l-desc">Detailed Description * (login-visible)</label>
       <textarea name="description" required placeholder="Full description visible to logged-in users"></textarea>
-      <label>Tech Stack</label><input name="tech_stack" placeholder="Python, PyTorch, Cloudflare Workers">
-      <label>Demo URL</label><input name="demo_url" placeholder="https://demo...">
-      <label>Deep Info (paid-visible)</label>
+      <label id="l-tech">Tech Stack</label><input name="tech_stack" placeholder="Python, PyTorch, Cloudflare Workers">
+      <label id="l-demo">Demo URL</label><input name="demo_url" placeholder="https://demo...">
+      <label id="l-deep">Deep Info (paid-visible)</label>
       <textarea name="deep_info" placeholder="Source code details, reproduction steps, benchmarks — visible to Pro+ subscribers"></textarea>
       <div class="row">
-        <div><label>Repo URL</label><input name="repo_url" placeholder="github.com/..."></div>
-        <div><label>Dataset URL</label><input name="dataset_url" placeholder="https://..."></div>
+        <div><label id="l-repo">Repo URL</label><input name="repo_url" placeholder="github.com/..."></div>
+        <div><label id="l-dataset">Dataset URL</label><input name="dataset_url" placeholder="https://..."></div>
       </div>
-      <button type="submit">Submit for Review</button>
+      <button type="submit" id="btn-submit">Submit for Review</button>
     </form>
   </div>
   <script>
-    let selectedCats = [];
+    const PATH = location.pathname;
+    const isCN = /^\/cn\//.test(PATH);
+    let LANG = isCN ? 'zh' : 'en';
+    localStorage.setItem('ai4sci_lang', LANG);
 
+    const C = {
+      en: {
+        browse:'Browse', pricing:'Pricing',
+        title:'Submit Your AI for Science App',
+        sub:'Share your tech prototype with the AI for Science community. Submissions are reviewed before publishing.',
+        checking:'Checking login status…',
+        mustSignin:'You must be signed in to submit.',
+        signinWith:'Sign in with Google',
+        lTitle:'App Title *', lSlug:'URL Slug *', lSubtitle:'Subtitle', lCats:'Categories *',
+        lSummary:'Summary * (guest-visible)', lDesc:'Detailed Description * (login-visible)',
+        lTech:'Tech Stack', lDemo:'Demo URL', lDeep:'Deep Info (paid-visible)', lRepo:'Repo URL', lDataset:'Dataset URL',
+        catHint:'(select one or more)', slugHint:'(auto from title or pick below)',
+        submit:'Submit for Review', pickCat:'Please choose at least one category.',
+        ok:'Submitted! Your app is pending review.', fail:'Submission failed. Please try again.',
+      },
+      zh: {
+        browse:'浏览', pricing:'定价',
+        title:'提交你的 AI for Science 应用',
+        sub:'把你的技术原型分享给 AI for Science 社区。提交后会经过审核再发布。',
+        checking:'正在检查登录状态…',
+        mustSignin:'提交前请先登录。',
+        signinWith:'用 Google 登录',
+        lTitle:'应用标题 *', lSlug:'URL Slug *', lSubtitle:'副标题', lCats:'分类 *',
+        lSummary:'摘要 *（访客可见）', lDesc:'详细描述 *（登录可见）',
+        lTech:'技术栈', lDemo:'演示 URL', lDeep:'深度信息（付费可见）', lRepo:'仓库 URL', lDataset:'数据集 URL',
+        catHint:'（可多选）', slugHint:'（按标题自动生成，或下方手选）',
+        submit:'提交审核', pickCat:'请至少选择一个分类。',
+        ok:'已提交！你的应用正在等待审核。', fail:'提交失败，请重试。',
+      }
+    };
+    const T = C[LANG] || C.en;
+    const CAT_EN = { 'beginners':'Beginners','professionals':'Professionals','grad-students':'Researchers','web-deployment':'Web Deployment','nlp':'NLP','reinforcement-learning':'Reinforcement Learning' };
+    function catName(c){ return (LANG==='en' && CAT_EN[c.slug]) ? CAT_EN[c.slug] : c.name; }
+
+    function applyStatic(){
+      document.documentElement.lang = LANG==='en' ? 'en' : 'zh-CN';
+      document.getElementById('lang-toggle').textContent = LANG==='en' ? '中文' : 'EN';
+      document.getElementById('nav-browse').textContent = T.browse;
+      document.getElementById('nav-pricing').textContent = T.pricing;
+      document.getElementById('h-title').textContent = T.title;
+      document.getElementById('h-sub').textContent = T.sub;
+      document.getElementById('l-title').firstChild.textContent = T.lTitle;
+      document.getElementById('l-slug').firstChild.textContent = T.lSlug + ' ';
+      document.getElementById('l-subtitle').textContent = T.lSubtitle;
+      document.getElementById('l-cats').firstChild.textContent = T.lCats + ' ';
+      document.getElementById('l-summary').textContent = T.lSummary;
+      document.getElementById('l-desc').textContent = T.lDesc;
+      document.getElementById('l-tech').textContent = T.lTech;
+      document.getElementById('l-demo').textContent = T.lDemo;
+      document.getElementById('l-deep').textContent = T.lDeep;
+      document.getElementById('l-repo').textContent = T.lRepo;
+      document.getElementById('l-dataset').textContent = T.lDataset;
+      document.querySelector('#l-cats .hint').textContent = T.catHint;
+      document.querySelector('#l-slug span').textContent = T.slugHint;
+      document.getElementById('btn-submit').textContent = T.submit;
+    }
+    function toggleLang(){ location.href = LANG==='en' ? '/cn/submit' : '/submit'; }
+
+    let selectedCats = [];
     let slugEdited = false;
+
     async function loadSlugSuggestions() {
       try {
         const res = await fetch('/config/slug-suggestions.json');
         const data = await res.json();
         const dl = document.getElementById('slug-options');
-        (data.slug_patterns || []).forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s;
-          dl.appendChild(opt);
-        });
-      } catch(e) { console.warn('Could not load slug suggestions', e); }
+        (data.slug_patterns || []).forEach(s => { const opt=document.createElement('option'); opt.value=s; dl.appendChild(opt); });
+      } catch(e) {}
     }
-    function slugify(text) {
-      return text.toLowerCase().trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/[\s_]+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-    }
-    function autoSlug() {
-      if (slugEdited) return;
-      const title = document.getElementById('f-title').value;
-      document.getElementById('f-slug').value = slugify(title);
-    }
+    function slugify(text){ return text.toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/[\s_]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,''); }
+    function autoSlug(){ if(slugEdited) return; document.getElementById('f-slug').value = slugify(document.getElementById('f-title').value); }
+
     async function checkAuth() {
-      const res = await fetch('/api/me');
-      const data = await res.json();
-      const el = document.getElementById('auth-check');
+      const res = await fetch('/api/me'); const data = await res.json(); const el = document.getElementById('auth-check');
       if (!data.user) {
-        el.innerHTML = 'You must be signed in to submit. <a class="login" href="/api/auth/login">Sign in with Google</a>';
+        el.innerHTML = `${T.mustSignin} <a class="login" href="/api/auth/login">${T.signinWith}</a>`;
       } else {
         el.style.display = 'none';
         document.getElementById('submit-form').style.display = 'block';
@@ -97,46 +159,32 @@
       }
     }
     async function loadCategories() {
-      const res = await fetch('/api/categories');
-      const data = await res.json();
-      const box = document.getElementById('category-chips');
-      box.innerHTML = '';
+      const res = await fetch('/api/categories'); const data = await res.json();
+      const box = document.getElementById('category-chips'); box.innerHTML = '';
       (data.categories || []).forEach(c => {
-        const chip = document.createElement('div');
-        chip.className = 'cat-chip';
-        chip.dataset.id = c.id;
-        chip.textContent = `${c.icon||''} ${c.name}`;
-        chip.onclick = () => {
-          const i = selectedCats.indexOf(c.id);
-          if (i === -1) selectedCats.push(c.id); else selectedCats.splice(i, 1);
-          chip.classList.toggle('active');
-          syncHidden();
-        };
+        const chip = document.createElement('div'); chip.className='cat-chip'; chip.dataset.id=c.id;
+        chip.textContent = `${c.icon||''} ${catName(c)}`;
+        chip.onclick = () => { const i=selectedCats.indexOf(c.id); if(i===-1)selectedCats.push(c.id);else selectedCats.splice(i,1); chip.classList.toggle('active'); syncHidden(); };
         box.appendChild(chip);
       });
     }
-    function syncHidden() {
-      document.getElementById('category_ids').value = JSON.stringify(selectedCats);
-    }
+    function syncHidden(){ document.getElementById('category_ids').value = JSON.stringify(selectedCats); }
+
     document.getElementById('submit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!selectedCats.length) { alert('Please choose at least one category.'); return; }
+      if (!selectedCats.length) { alert(T.pickCat); return; }
       const fd = new FormData(e.target);
       const body = Object.fromEntries(fd.entries());
       body.category_ids = JSON.parse(body.category_ids || '[]');
       delete body.category_id;
-      const res = await fetch('/api/submit', {
-        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body),
-      });
+      const res = await fetch('/api/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       if (res.ok) {
-        alert('Submitted! Your app is pending review.');
-        e.target.reset();
-        selectedCats = [];
+        alert(T.ok); e.target.reset(); selectedCats = [];
         document.querySelectorAll('.cat-chip').forEach(ch => ch.classList.remove('active'));
-      } else {
-        alert('Submission failed. Please try again.');
-      }
+      } else { alert(T.fail); }
     });
+
+    applyStatic();
     loadSlugSuggestions();
     checkAuth();
   </script>

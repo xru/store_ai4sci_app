@@ -82,7 +82,10 @@
   <footer>ai4sci.app — Built on Cloudflare</footer>
   <script>
     // ── i18n ──────────────────────────────────────────────
-    let LANG = localStorage.getItem('ai4sci_lang') || 'en';
+    // URL drives language: /cn or /cn/apps => zh; otherwise honor saved pref (default en)
+    const _path = location.pathname;
+    let LANG = (/^\/cn(\/|$)/.test(_path)) ? 'zh'
+             : (localStorage.getItem('ai4sci_lang') || 'en');
 
     const I18N = {
       en: {
@@ -112,10 +115,14 @@
     };
 
     function t(k){ return (I18N[LANG]||I18N.en)[k] || k; }
-    function catName(c){ return CAT_EN[c.slug] || c.name; }
+    function catName(c){ return (LANG==='en' && CAT_EN[c.slug]) ? CAT_EN[c.slug] : c.name; }
 
     // Chinese overlay for app body fields (English is the DB source of truth).
-    const APP_ZH = {};
+    const APP_ZH = {
+      'deploykit': { subtitle:'网站建好后的零配置一键部署', summary:'把你的网站一键部署到 Cloudflare，零配置上线。' },
+      'nlp-skill-picker': { subtitle:'按任务场景推荐 NLP 技能组合', summary:'输入你的工作任务，自动推荐最合适的 NLP 技能（Skill）组合。' },
+      'rl-gym-trainer': { subtitle:'强化学习 MVP 原型训练环境', summary:'快速搭建强化学习实验，从 DQN 到 PPO 一键跑通 MVP 原型。' },
+    };
         function appField(app, field){
       if (LANG==='zh' && APP_ZH[app.slug] && APP_ZH[app.slug][field] != null) return APP_ZH[app.slug][field];
       return app[field] != null ? app[field] : '';
@@ -134,6 +141,15 @@
     }
 
     function toggleLang(){
+      const p = location.pathname;
+      const zhNow = /^\/cn(\/|$)/.test(p);
+      // Home / browse: swap / <-> /cn ; preserve query string
+      if (p === '/' || p === '/cn' || p === '/apps' || p === '/cn/apps') {
+        let target = zhNow ? p.replace(/^\/cn/, '') : ('/cn' + (p === '/apps' ? '/apps' : ''));
+        if (target === '') target = '/';
+        location.href = target + location.search;
+        return;
+      }
       LANG = LANG==='en' ? 'zh' : 'en';
       localStorage.setItem('ai4sci_lang', LANG);
       applyLang();
