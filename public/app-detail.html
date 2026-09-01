@@ -26,11 +26,12 @@
     .locked{display:flex;align-items:center;gap:12px;padding:16px;border-radius:8px;background:rgba(251,191,36,.1);border:1px solid var(--gold);margin-top:8px}
     .locked.paid{background:rgba(99,102,241,.1);border-color:var(--accent)}
     .locked-icon{font-size:24px}
-    .btn{display:inline-block;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600}
+    .btn{display:inline-block;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;border:none;cursor:pointer}
     .btn-accent{background:var(--accent);color:#fff}
     .btn-gold{background:var(--gold);color:#000}
     .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
     .meta-grid a{color:var(--accent);word-break:break-all}
+    .downloads{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px}
     .reviews{margin-top:8px}
     .review{padding:12px 0;border-bottom:1px solid var(--border)}
     .review .stars{color:var(--gold)}
@@ -66,8 +67,13 @@
     </div>
     <div id="detail-locked" class="locked" style="display:none">
       <span class="locked-icon">🔐</span>
-      <div><strong>Sign in to view detailed description, tech stack, and demo links.</strong><br>
+      <div><strong>Sign in to view detailed description and tech stack.</strong><br>
       <a href="/api/auth/login" class="btn btn-gold" style="margin-top:8px">Sign in with Google</a></div>
+    </div>
+
+    <div id="files-section" class="section" style="display:none">
+      <h2>Downloads</h2>
+      <div id="files-body"></div>
     </div>
 
     <div id="deep-section" class="section" style="display:none">
@@ -75,25 +81,23 @@
       <div id="app-deep"></div>
       <div class="meta-grid" id="deep-meta"></div>
     </div>
-    <div id="deep-locked" class="locked paid" style="display:none;flex-direction:column;align-items:stretch">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <span class="locked-icon">🔒</span>
-        <strong>Deep access (Pro+) is coming soon. Join the waiting list to get early access.</strong>
-      </div>
-      <div style="display:flex;gap:8px">
-        <input id="detail-wl-email" type="email" placeholder="your@email.com" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1e293b;background:#0a0e1a;color:#e2e8f0;font-size:14px">
-        <button onclick="joinDetailWaitlist()" class="btn btn-accent" style="white-space:nowrap">Join List</button>
-      </div>
-      <p id="detail-wl-msg" style="margin-top:8px;font-size:13px;color:#94a3b8"></p>
+    <div id="deep-locked" class="locked paid" style="display:none">
+      <span class="locked-icon">🔒</span>
+      <div><strong>Deep access (Pro+) is coming soon.</strong><br>
+      Source, reports, and advanced materials unlock with Pro+.</div>
     </div>
 
     <div class="section"><h2>Reviews</h2><div class="reviews" id="reviews"><p style="color:var(--muted)">Loading reviews…</p></div></div>
   </div>
   <script>
     const slug = location.pathname.replace('/apps/','').replace('.html','');
+    let loggedIn = false;
+
     async function load() {
       const [appRes, revRes, meRes] = await Promise.all([
-        fetch(`/api/apps/${slug}`), fetch(`/api/apps/${slug}/reviews`), fetch('/api/me')
+        fetch(`/api/apps/${slug}`, { cache: 'no-store' }),
+        fetch(`/api/apps/${slug}/reviews`),
+        fetch('/api/me')
       ]);
       const appData = await appRes.json();
       const revData = await revRes.json();
@@ -101,6 +105,7 @@
       if (appData.error) { document.body.innerHTML = '<div class="detail"><h1>App not found</h1></div>'; return; }
 
       const app = appData.app, tier = appData.user_tier;
+      loggedIn = !!(meData.user);
       document.getElementById('meta-desc').setAttribute('content', app.summary);
       document.getElementById('canonical').setAttribute('href', 'https://ai4sci.app/apps/' + app.slug);
       document.getElementById('page-title').textContent = `${app.title} — ai4sci.app`;
@@ -108,7 +113,6 @@
       document.getElementById('app-subtitle').textContent = app.subtitle || '';
       document.getElementById('app-summary').textContent = app.summary;
 
-      // Render multiple category tags (from the join table)
       const cats = document.getElementById('app-cats');
       cats.innerHTML = '';
       (app.categories || []).forEach(c => {
@@ -119,30 +123,33 @@
         cats.appendChild(tag);
       });
 
-      const badges = document.getElementById('badges');
       if (tier >= 1 && app.description) {
         document.getElementById('detail-section').style.display = 'block';
         document.getElementById('app-description').textContent = app.description;
         const meta = document.getElementById('tech-meta');
-        if (app.tech_stack) meta.innerHTML += `<div>Tech: ${app.tech_stack}</div>`;
-        if (app.demo_url) meta.innerHTML += `<div>Demo: <a href="${app.demo_url}">${app.demo_url}</a></div>`;
+        meta.innerHTML = '';
+        if (app.tech_stack) meta.innerHTML += `<div>Tech: ${escapeHtml(app.tech_stack)}</div>`;
+        // Never render demo_url / dataset_url as href text
       } else {
         document.getElementById('detail-locked').style.display = 'flex';
       }
+
+      renderFilesSection(app);
 
       if (tier >= 2 && app.deep_info) {
         document.getElementById('deep-section').style.display = 'block';
         document.getElementById('app-deep').textContent = app.deep_info;
         const dm = document.getElementById('deep-meta');
-        if (app.repo_url) dm.innerHTML += `<div>Repo: <a href="${app.repo_url}">${app.repo_url}</a></div>`;
-        if (app.dataset_url) dm.innerHTML += `<div>Dataset: <a href="${app.dataset_url}">${app.dataset_url}</a></div>`;
+        dm.innerHTML = '';
+        if (app.repo_url) dm.innerHTML += `<div>Repo: <a href="${escapeAttr(app.repo_url)}">${escapeHtml(app.repo_url)}</a></div>`;
+        if (app.report_url) dm.innerHTML += `<div>Report: <a href="${escapeAttr(app.report_url)}">${escapeHtml(app.report_url)}</a></div>`;
       } else if (tier >= 1) {
         document.getElementById('deep-locked').style.display = 'flex';
       }
 
       const revs = revData.reviews || [];
       document.getElementById('reviews').innerHTML = revs.length
-        ? revs.map(r => `<div class="review"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><span style="color:var(--muted);font-size:13px">${r.email}</span><p style="margin-top:4px">${r.comment||''}</p></div>`).join('')
+        ? revs.map(r => `<div class="review"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><span style="color:var(--muted);font-size:13px">${escapeHtml(r.email)}</span><p style="margin-top:4px">${escapeHtml(r.comment||'')}</p></div>`).join('')
         : '<p style="color:var(--muted)">No reviews yet.</p>';
 
       const nav = document.getElementById('nav');
@@ -153,23 +160,87 @@
       }
     }
 
-    async function joinDetailWaitlist() {
-      var email = document.getElementById('detail-wl-email').value.trim();
-      var msg = document.getElementById('detail-wl-msg');
-      if (!email || email.indexOf('@') === -1) {
-        msg.textContent = 'Please enter a valid email'; msg.style.color = '#ef4444'; return;
+    function renderFilesSection(app) {
+      const hasFiles = !!(app.has_demo || app.has_dataset);
+      if (!hasFiles) return;
+      const section = document.getElementById('files-section');
+      const body = document.getElementById('files-body');
+      section.style.display = 'block';
+
+      if (app.joined_waitlist) {
+        let html = '<div class="downloads">';
+        if (app.demo_download) {
+          html += `<a class="btn btn-accent" href="${escapeAttr(app.demo_download)}">Download Demo</a>`;
+        }
+        if (app.dataset_download) {
+          html += `<a class="btn btn-accent" href="${escapeAttr(app.dataset_download)}">Download Dataset</a>`;
+        }
+        html += '</div><p style="margin-top:8px;font-size:13px;color:var(--muted)">Downloads are served through ai4sci.app after you joined this listing\'s waiting list.</p>';
+        body.innerHTML = html;
+        return;
       }
+
+      if (!loggedIn) {
+        body.innerHTML = `
+          <div class="locked paid" style="display:flex">
+            <span class="locked-icon">🔐</span>
+            <div>
+              <strong>Join the waiting list to unlock downloads for this listing.</strong><br>
+              Sign in first, then join the list.
+              <div style="margin-top:8px">
+                <a href="/api/auth/login" class="btn btn-gold">Sign in with Google</a>
+              </div>
+            </div>
+          </div>`;
+        return;
+      }
+
+      body.innerHTML = `
+        <div class="locked paid" style="display:flex;flex-direction:column;align-items:stretch">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <span class="locked-icon">🔒</span>
+            <strong>Join the waiting list to unlock downloads for this listing.</strong>
+          </div>
+          <button id="join-listing-btn" class="btn btn-accent" style="align-self:flex-start">Join Waiting List</button>
+          <p id="detail-wl-msg" style="margin-top:8px;font-size:13px;color:#94a3b8"></p>
+        </div>`;
+      document.getElementById('join-listing-btn').addEventListener('click', joinListingWaitlist);
+    }
+
+    async function joinListingWaitlist() {
+      var msg = document.getElementById('detail-wl-msg');
+      var btn = document.getElementById('join-listing-btn');
+      if (btn) btn.disabled = true;
       var res = await fetch('/api/waitlist', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, source: 'app-detail' })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ app_slug: slug, source: 'app-detail' })
       });
       var data = await res.json();
-      if (data.ok) {
-        msg.textContent = "You're on the list! We'll email you when Pro+ launches.";
-        msg.style.color = '#4ade80';
-      } else {
-        msg.textContent = 'Something went wrong.'; msg.style.color = '#ef4444';
+      if (res.status === 401 || data.error === 'login_required') {
+        msg.textContent = 'Please sign in first.';
+        msg.style.color = '#ef4444';
+        location.href = '/api/auth/login';
+        return;
       }
+      if (data.ok) {
+        msg.textContent = "You're on the list — unlocking downloads…";
+        msg.style.color = '#4ade80';
+        location.reload();
+      } else {
+        msg.textContent = data.error || 'Something went wrong.';
+        msg.style.color = '#ef4444';
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/'/g,'&#39;');
     }
     load();
   </script>

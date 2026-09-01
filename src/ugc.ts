@@ -2,7 +2,7 @@
  * UGC submission + admin review + waitlist endpoints
  */
 
-import { json } from "./util";
+import { json, getUser, isAdmin, type Env } from "./util";
 
 /** Resolve the requested category ids into a clean array, accepting both the new
  *  category_ids array and the legacy single category_id. */
@@ -112,14 +112,43 @@ export async function handleUgc(request: Request, env: Env): Promise<Response> {
     return json({ status: action === "approve" ? "published" : "rejected" });
   }
 
-  // --- Waitlist: join the Pro+ early access waiting list ---
+  // --- Waitlist: pricing (email-only) or per-listing join (login + app_slug) ---
   if (path === "/api/waitlist" && method === "POST") {
-    const body = await request.json() as { email?: string; source?: string };
+    const body = await request.json() as {
+      email?: string; source?: string; app_slug?: string;
+    };
+    const appSlug = (body.app_slug || "").trim() || null;
+
+    // Listing join = purchase stand-in: requires login; unlocks Worker download paths
+    if (appSlug) {
+      const user = await getUser(request, env);
+      if (!user.userId || user.tier < 1) {
+        return json({ error: "login_required" }, 401);
+      }
+      const app = await env.DB.prepare(
+        "SELECT slug FROM apps WHERE slug=? AND status='published'"
+      ).bind(appSlug).first();
+      if (!app) return json({ error: "app_not_found" }, 404);
+
+      const email = (user.email || body.email || "").trim().toLowerCase();
+      if (!email || !email.includes("@")) return json({ error: "invalid_email" }, 400);
+
+      try {
+        await env.DB.prepare(
+          "INSERT INTO waitlist (email, source, user_id, app_slug) VALUES (?, ?, ?, ?)"
+        ).bind(email, body.source || "app-detail", user.userId, appSlug).run();
+      } catch {
+        return json({ ok: true, message: "already_on_waitlist", app_slug: appSlug });
+      }
+      return json({ ok: true, message: "joined", app_slug: appSlug }, 201);
+    }
+
+    // Pricing-page / generic join: email only, no listing unlock
     const email = (body.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) return json({ error: "invalid_email" }, 400);
     try {
       await env.DB.prepare(
-        "INSERT INTO waitlist (email, source) VALUES (?, ?)"
+        "INSERT INTO waitlist (email, source, user_id, app_slug) VALUES (?, ?, NULL, NULL)"
       ).bind(email, body.source || "pricing").run();
     } catch {
       return json({ ok: true, message: "already_on_waitlist" });
@@ -152,9 +181,4 @@ export async function handleUgc(request: Request, env: Env): Promise<Response> {
   }
 
   return json({ error: "not_found", path }, 404);
-}
-
-/** Admin gate: based on the users.role column ('admin'). */
-function isAdmin(user: SessionUser): boolean {
-  return user.role === "admin";
 }
