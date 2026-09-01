@@ -4,7 +4,10 @@
  *         + category management (admin CRUD) with multi-category (app_categories)
  */
 
-import { Env, json, getUser, filterAppFields } from "./util";
+import {
+  Env, json, getUser, filterAppFields, hasFileRef,
+  hasJoinedListingWaitlist, isAdmin, streamListingFile,
+} from "./util";
 import { handleUgc } from "./ugc";
 
 // Fixed redirect_uri: localhost for dev, ai4sci.app for production
@@ -181,21 +184,61 @@ export default {
         });
       }
 
-      // App detail (returns a categories[] array from the join table)
+      // App detail — never expose demo_url/dataset_url; gate downloads via waitlist
       const appMatch = path.match(/^\/api\/apps\/([\w-]+)$/);
       if (appMatch && method === "GET") {
+        const slug = appMatch[1];
         const app = await env.DB.prepare(
           "SELECT * FROM apps WHERE slug=? AND status='published'"
-        ).bind(appMatch[1]).first<{ id: string }>();
+        ).bind(slug).first<Record<string, unknown>>();
         if (!app) return json({ error: "not_found" }, 404);
         const catRows = await env.DB.prepare(
           `SELECT c.id, c.name, c.slug, c.icon, c.parent_id FROM app_categories ac
              JOIN categories c ON c.id = ac.category_id
              WHERE ac.app_id = ? ORDER BY c.sort_order`
         ).bind(app.id).all();
-        const filtered = filterAppFields(app as Record<string, unknown>, user.tier);
+
+        const hasDemo = hasFileRef(app.demo_url);
+        const hasDataset = hasFileRef(app.dataset_url);
+        const joined = isAdmin(user) || await hasJoinedListingWaitlist(env, user, slug);
+
+        const filtered = filterAppFields(app, user.tier);
         filtered.categories = catRows.results;
-        return json({ app: filtered, user_tier: user.tier });
+        filtered.has_demo = hasDemo;
+        filtered.has_dataset = hasDataset;
+        filtered.joined_waitlist = joined;
+        // Only return Worker-relative download paths after waitlist join (or admin)
+        if (joined) {
+          if (hasDemo) filtered.demo_download = `/api/apps/${slug}/files/demo`;
+          if (hasDataset) filtered.dataset_download = `/api/apps/${slug}/files/dataset`;
+        }
+
+        return json(
+          { app: filtered, user_tier: user.tier },
+          200,
+          { "Cache-Control": "private, no-store" }
+        );
+      }
+
+      // Gated file download — login + listing waitlist (or admin); stream from R2
+      const fileMatch = path.match(/^\/api\/apps\/([\w-]+)\/files\/(demo|dataset)$/);
+      if (fileMatch && method === "GET") {
+        const [, slug, kind] = fileMatch;
+        if (!user.userId || user.tier < 1) {
+          return json({ error: "login_required" }, 401);
+        }
+        const app = await env.DB.prepare(
+          "SELECT demo_url, dataset_url FROM apps WHERE slug=? AND status='published'"
+        ).bind(slug).first<{ demo_url: string | null; dataset_url: string | null }>();
+        if (!app) return json({ error: "not_found" }, 404);
+
+        const allowed = isAdmin(user) || await hasJoinedListingWaitlist(env, user, slug);
+        if (!allowed) return json({ error: "waitlist_required" }, 403);
+
+        const stored = kind === "demo" ? app.demo_url : app.dataset_url;
+        if (!stored || !hasFileRef(stored)) return json({ error: "file_not_found" }, 404);
+
+        return streamListingFile(env, stored, `${slug}-${kind}`);
       }
 
       // Debug: show exact redirect_uri being sent

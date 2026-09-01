@@ -69,6 +69,10 @@ npx wrangler d1 execute ai4sci-db --local \
 | 远端灌种子 | `npm run db:seed` |
 | 部署 | `npm run deploy` |
 
+> Listing downloads are gated by waitlist join — see
+> [Waitlist_Downloads.md](./Waitlist_Downloads.md) for the Worker file
+> routes and the WCM R2/D1 one-liners.
+
 ## 6. 验证清单(启动后)
 
 - `GET /api/categories` → 返回 7 个分类,带 `app_count`
