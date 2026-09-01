@@ -4,186 +4,126 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
-  <title>Category Admin — ai4sci.app</title>
+  <title>Admin Dashboard — ai4sci.app</title>
   <style>
-    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;--gold:#fbbf24;--green:#4ade80;--red:#ef4444}
+    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;--green:#4ade80;--red:#ef4444}
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text)}
     nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
     .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
     .nav-links a{color:var(--muted);font-size:14px;text-decoration:none;margin-left:24px}
     .wrap{max-width:900px;margin:0 auto;padding:40px 24px}
-    h1{font-size:26px;margin-bottom:6px}
-    p.sub{color:var(--muted);margin-bottom:24px;font-size:14px}
-    .gate{padding:16px;border-radius:10px;background:rgba(239,68,68,.1);border:1px solid var(--red);color:var(--text);font-size:14px}
+    h1{font-size:26px;margin-bottom:8px}
+    p.sub{color:var(--muted);margin-bottom:32px;font-size:14px}
+    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;text-decoration:none;color:inherit;transition:border-color .2s,transform .2s}
+    .card:hover{border-color:var(--accent);transform:translateY(-2px)}
+    .card-icon{font-size:32px;margin-bottom:12px}
+    .card h2{font-size:18px;margin-bottom:4px}
+    .card p{font-size:13px;color:var(--muted)}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}
+    .stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+    .stat-num{font-size:28px;font-weight:800;color:var(--accent)}
+    .stat-label{font-size:12px;color:var(--muted);margin-top:4px}
+    .gate{padding:16px;border-radius:10px;background:rgba(239,68,68,.1);border:1px solid var(--red);font-size:14px}
     .gate a{color:var(--accent2)}
-    .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-    .toolbar button{padding:9px 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:14px;cursor:pointer}
-    .toolbar button:hover{opacity:.9}
-    table{width:100%;border-collapse:collapse}
-    th,td{text-align:left;padding:12px;border-bottom:1px solid var(--border);font-size:14px}
-    th{color:var(--muted);text-transform:uppercase;font-size:12px;letter-spacing:.5px}
-    .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;background:rgba(148,163,184,.15);color:var(--muted)}
-    .row-actions{display:flex;gap:8px}
-    .row-actions button{padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;cursor:pointer}
-    .row-actions button.del{border-color:var(--red);color:var(--red)}
-    .row-actions button:hover{opacity:.85}
-    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:100}
-    .modal-bg.show{display:flex}
-    .modal{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;max-width:480px;width:90%}
-    .modal h2{font-size:18px;margin-bottom:18px}
-    .modal label{display:block;font-size:13px;margin:12px 0 4px;color:var(--muted)}
-    .modal input,.modal textarea{width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px}
-    .modal textarea{min-height:64px;resize:vertical}
-    .modal-actions{display:flex;gap:12px;margin-top:22px}
-    .modal-actions button{flex:1;padding:11px;border-radius:8px;border:none;font-size:14px;cursor:pointer}
-    .btn-primary{background:var(--accent);color:#fff}
-    .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
-    .err{color:var(--red);font-size:13px;margin-top:12px;min-height:18px}
-    .ok{color:var(--green);font-size:13px;margin-top:12px;min-height:18px}
   </style>
 </head>
 <body>
   <nav>
     <a href="/" class="logo">ai4sci.app</a>
     <div class="nav-links">
-      <a href="/apps">Browse</a>
-      <a href="/admin">Admin</a>
+      <span style="color:var(--muted);font-size:13px">Admin Dashboard</span>
+      <a href="/" style="color:var(--muted)">← Back to site</a>
     </div>
   </nav>
   <div class="wrap">
-    <h1>Category Management</h1>
-    <p class="sub">Create, edit, and remove taxonomy categories. Deleting a category that still has apps is blocked.</p>
-    <div id="gate" class="gate" style="display:none">Checking access…</div>
-
-    <div id="panel" style="display:none">
-      <div class="toolbar">
-        <span style="color:var(--muted);font-size:13px" id="me-label"></span>
-        <button onclick="openCreate()">+ New Category</button>
+    <div id="gate" class="gate">Checking access…</div>
+    <div id="content" style="display:none">
+      <h1>Admin Dashboard</h1>
+      <p class="sub">Manage your AI for Science App Store</p>
+      
+      <div class="stats" id="stats"></div>
+      
+      <div class="cards">
+        <a href="/admin-categories.html" class="card">
+          <div class="card-icon">📂</div>
+          <h2>Categories</h2>
+          <p>Add, edit, and organize app categories</p>
+        </a>
+        <a href="/admin-submissions.html" class="card">
+          <div class="card-icon">📥</div>
+          <h2>Submissions</h2>
+          <p>Review and approve user-submitted apps</p>
+        </a>
+        <a href="#" class="card" onclick="exportWaitlist();return false">
+          <div class="card-icon">📧</div>
+          <h2>Waiting List</h2>
+          <p>Export collected emails</p>
+        </a>
+        <a href="#" class="card" onclick="exportApps();return false">
+          <div class="card-icon">📊</div>
+          <h2>Apps Overview</h2>
+          <p>View all published apps</p>
+        </a>
       </div>
-      <table>
-        <thead><tr><th>Icon</th><th>Name</th><th>Slug</th><th>Order</th><th>Apps</th><th>Description</th><th>Actions</th></tr></thead>
-        <tbody id="rows"></tbody>
-      </table>
     </div>
   </div>
-
-  <div class="modal-bg" id="modal">
-    <div class="modal">
-      <h2 id="modal-title">New Category</h2>
-      <input type="hidden" id="f-id">
-      <label>Name</label><input id="f-name" placeholder="Bioinformatics">
-      <label>Slug (URL)</label><input id="f-slug" placeholder="bioinformatics">
-      <label>Icon (emoji)</label><input id="f-icon" placeholder="🧬">
-      <label>Sort order</label><input id="f-order" type="number" value="0">
-      <label>Description</label><textarea id="f-desc" placeholder="Short blurb for the category page"></textarea>
-      <div class="err" id="modal-err"></div>
-      <div class="modal-actions">
-        <button class="btn-ghost" onclick="closeModal()">Cancel</button>
-        <button class="btn-primary" id="modal-save">Save</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    let editingId = null;
-
-    async function gate() {
-      const res = await fetch('/api/me'); const data = await res.json();
+    async function checkAccess() {
+      const res = await fetch('/api/me');
+      const data = await res.json();
       const gate = document.getElementById('gate');
       if (!data.user) {
-        gate.style.display = 'block';
-        gate.innerHTML = 'You must be signed in. <a href="/api/auth/login">Sign in with Google</a>';
-        return false;
-      }
-      if (data.user.role !== 'admin') {
-        gate.style.display = 'block';
-        gate.textContent = 'Forbidden — your account role is "' + (data.user.role||'user') + '". An admin must set role="admin" for your email in D1.';
-        return false;
-      }
-      gate.style.display = 'none';
-      document.getElementById('panel').style.display = 'block';
-      document.getElementById('me-label').textContent = data.user.email;
-      return true;
-    }
-
-    async function loadRows() {
-      const res = await fetch('/api/categories'); const data = await res.json();
-      const tbody = document.getElementById('rows'); tbody.innerHTML = '';
-      (data.categories||[]).forEach(c => {
-        const tr = document.createElement('tr');
-        const desc = c.description ? (c.description.length>40?c.description.slice(0,40)+'…':c.description) : '<span style="color:var(--muted)">—</span>';
-        tr.innerHTML = `
-          <td>${c.icon||''}</td>
-          <td>${c.name}</td>
-          <td><span class="pill">${c.slug}</span></td>
-          <td>${c.sort_order}</td>
-          <td>${c.app_count!=null?c.app_count:''}</td>
-          <td>${desc}</td>
-          <td class="row-actions">
-            <button onclick='openEdit(${JSON.stringify(c)})'>Edit</button>
-            <button class="del" onclick="del('${c.id}','${c.slug.replace(/'/g,"\\'")}')">Delete</button>
-          </td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function openCreate() {
-      editingId = null;
-      document.getElementById('modal-title').textContent = 'New Category';
-      ['f-id','f-name','f-slug','f-icon','f-order','f-desc'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('f-order').value='0';
-      document.getElementById('modal-err').textContent='';
-      document.getElementById('modal').classList.add('show');
-    }
-    function openEdit(c) {
-      editingId = c.id;
-      document.getElementById('modal-title').textContent = 'Edit Category';
-      document.getElementById('f-id').value=c.id;
-      document.getElementById('f-name').value=c.name||'';
-      document.getElementById('f-slug').value=c.slug||'';
-      document.getElementById('f-icon').value=c.icon||'';
-      document.getElementById('f-order').value=c.sort_order||0;
-      document.getElementById('f-desc').value=c.description||'';
-      document.getElementById('modal-err').textContent='';
-      document.getElementById('modal').classList.add('show');
-    }
-    function closeModal(){ document.getElementById('modal').classList.remove('show'); }
-
-    document.getElementById('modal-save').addEventListener('click', async () => {
-      const err = document.getElementById('modal-err'); err.textContent='';
-      const body = {
-        name: document.getElementById('f-name').value.trim(),
-        slug: document.getElementById('f-slug').value.trim(),
-        icon: document.getElementById('f-icon').value.trim(),
-        sort_order: parseInt(document.getElementById('f-order').value||'0',10),
-        description: document.getElementById('f-desc').value.trim(),
-      };
-      if (!body.name || !body.slug) { err.textContent='Name and slug are required.'; return; }
-      const url = editingId ? `/api/admin/categories/${editingId}` : '/api/admin/categories';
-      const res = await fetch(url, {
-        method: editingId ? 'PUT' : 'POST',
-        headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!res.ok) { err.textContent = data.error || 'Failed.'; return; }
-      closeModal(); loadRows();
-    });
-
-    async function del(id, slug) {
-      if (!confirm(`Delete category "${slug}"?`)) return;
-      const res = await fetch(`/api/admin/categories/${id}`, { method:'DELETE' });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error==='category_in_use'
-          ? `Cannot delete: ${data.app_count} app(s) still use this category.`
-          : (data.error||'Failed'));
+        gate.innerHTML = 'You need to sign in. <a href="/api/auth/login">Sign in with Google</a>';
         return;
       }
-      loadRows();
+      if (data.user.role !== 'admin') {
+        gate.innerHTML = 'Access denied. Admin role required. Current role: ' + data.user.role;
+        return;
+      }
+      gate.style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      await loadStats();
     }
-
-    (async () => { if (await gate()) loadRows(); })();
+    async function loadStats() {
+      const el = document.getElementById('stats');
+      try {
+        const [apps, cats, subs, wl] = await Promise.all([
+          fetch('/api/apps').then(r=>r.json()),
+          fetch('/api/categories').then(r=>r.json()),
+          fetch('/api/admin/submissions').then(r=>r.json()),
+        ]);
+        el.innerHTML = [
+          ['Apps', (apps.apps||[]).length],
+          ['Categories', (cats.categories||[]).length],
+          ['Pending', (subs.submissions||[]).length],
+        ].map(([label, num]) =>
+          '<div class="stat"><div class="stat-num">'+num+'</div><div class="stat-label">'+label+'</div></div>'
+        ).join('');
+      } catch(e) {
+        el.innerHTML = '<div class="stat"><div class="stat-num">—</div><div class="stat-label">Stats loading</div></div>';
+      }
+    }
+    async function exportWaitlist() {
+      const res = await fetch('/api/admin/waitlist');
+      const data = await res.json();
+      if (data.emails) {
+        const csv = 'email,source,created_at\n' + data.emails.map(e=>`${e.email},${e.source||''},${e.created_at}`).join('\n');
+        const blob = new Blob([csv], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'waitlist.csv'; a.click();
+      } else {
+        alert('Could not export waitlist');
+      }
+    }
+    async function exportApps() {
+      const res = await fetch('/api/apps');
+      const data = await res.json();
+      const apps = data.apps || [];
+      alert(apps.map(a=>`${a.title} (${a.slug})`).join('\n') || 'No apps');
+    }
+    checkAccess();
   </script>
 </body>
 </html>

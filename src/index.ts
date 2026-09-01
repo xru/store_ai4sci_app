@@ -4,11 +4,19 @@
  *         + category management (admin CRUD) with multi-category (app_categories)
  */
 
-import { Env, json, getUser, filterAppFields } from "./util";
+import { Env, json, getUser, filterAppFields, hasListingWaitlist } from "./util";
 import { handleUgc } from "./ugc";
 
 // Fixed redirect_uri: localhost for dev, ai4sci.app for production
 // This avoids Google OAuth rejecting http:// for non-localhost domains
+function safeNext(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  let v = raw;
+  try { v = decodeURIComponent(raw); } catch { /* keep */ }
+  if (v.startsWith("/") && !v.startsWith("//") && !v.includes("\\")) return v;
+  return "/dashboard";
+}
+
 function getRedirectUri(env: Env): string {
   const isProduction = env.ENVIRONMENT === "production";
   return isProduction
@@ -42,6 +50,17 @@ export default {
       const url = new URL(request.url);
       const path = url.pathname;
 
+      // Old in-worker admin moved to dedicated Worker on dash.ai4sci.app
+      const dashRedirects: Record<string, string> = {
+        "/admin": "https://dash.ai4sci.app/",
+        "/admin.html": "https://dash.ai4sci.app/",
+        "/admin-categories.html": "https://dash.ai4sci.app/categories",
+        "/admin-submissions.html": "https://dash.ai4sci.app/submissions",
+      };
+      if (dashRedirects[path]) {
+        return Response.redirect(dashRedirects[path], 302);
+      }
+
       // --- Static file serving via Workers Assets ---
       if (!path.startsWith("/api/")) {
         const htmlRoutes: Record<string, string> = {
@@ -51,10 +70,13 @@ export default {
           "/dashboard": "/dashboard.html",
           "/apps": "/index.html",
           "/login": "/index.html",
-          "/admin": "/admin.html",
         };
         let assetPath = htmlRoutes[path] || path;
+        // App detail pages: /apps/:slug (default EN) and /cn/apps/:slug (中文)
+        const cnApp = path.match(/^\/cn\/apps\/([\w-]+)$/);
         if (path.startsWith("/apps/") && !path.endsWith(".html")) {
+          assetPath = "/app-detail.html";
+        } else if (cnApp) {
           assetPath = "/app-detail.html";
         }
         const assetUrl = new URL(assetPath, url.origin);
@@ -176,7 +198,7 @@ export default {
         stmt += " ORDER BY a.featured DESC, a.created_at DESC";
         const rows = await env.DB.prepare(stmt).bind(...binds).all();
         return json({
-          apps: rows.results.map((a) => filterAppFields(a as Record<string, unknown>, user.tier)),
+          apps: rows.results.map((a) => filterAppFields(a as Record<string, unknown>, user)),
           user_tier: user.tier,
         });
       }
@@ -193,9 +215,52 @@ export default {
              JOIN categories c ON c.id = ac.category_id
              WHERE ac.app_id = ? ORDER BY c.sort_order`
         ).bind(app.id).all();
-        const filtered = filterAppFields(app as Record<string, unknown>, user.tier);
+        const filtered = filterAppFields(app as Record<string, unknown>, user);
         filtered.categories = catRows.results;
-        return json({ app: filtered, user_tier: user.tier });
+        const raw = app as Record<string, unknown>;
+        const slug = appMatch[1];
+        const joined = await hasListingWaitlist(env, user, slug);
+        filtered.has_demo = !!raw.demo_url;
+        filtered.has_dataset = !!raw.dataset_url;
+        filtered.joined_waitlist = joined;
+        if (joined) {
+          if (raw.demo_url) filtered.demo_download = `/api/apps/${slug}/files/demo`;
+          if (raw.dataset_url) filtered.dataset_download = `/api/apps/${slug}/files/dataset`;
+        }
+        return json({ app: filtered, user_tier: user.tier }, 200, { "cache-control": "private, no-store" });
+      }
+
+      const coverMatch = path.match(/^\/api\/apps\/([\w-]+)\/cover$/);
+      if (coverMatch && method === "GET") {
+        const row = await env.DB.prepare(
+          "SELECT cover_r2_key FROM apps WHERE slug=? AND status='published'"
+        ).bind(coverMatch[1]).first<{ cover_r2_key: string | null }>();
+        if (!row) return json({ error: "not_found" }, 404);
+        if (!row.cover_r2_key || !env.BUCKET) return json({ error: "no_cover" }, 404);
+        const obj = await env.BUCKET.get(row.cover_r2_key);
+        if (!obj) return json({ error: "no_cover" }, 404);
+        return new Response(obj.body, {
+          headers: {
+            "content-type": obj.httpMetadata?.contentType || "image/png",
+            "cache-control": "public, max-age=3600",
+          },
+        });
+      }
+
+      const fileMatch = path.match(/^\/api\/apps\/([\w-]+)\/files\/(demo|dataset)$/);
+      if (fileMatch && method === "GET") {
+        if (user.tier < 1) return json({ error: "login_required" }, 401);
+        const slug = fileMatch[1];
+        const kind = fileMatch[2] as "demo" | "dataset";
+        const joined = await hasListingWaitlist(env, user, slug);
+        if (!joined) return json({ error: "waitlist_required" }, 403);
+        const row = await env.DB.prepare(
+          "SELECT demo_url, dataset_url FROM apps WHERE slug=? AND status='published'"
+        ).bind(slug).first<{ demo_url: string | null; dataset_url: string | null }>();
+        if (!row) return json({ error: "not_found" }, 404);
+        const raw = kind === "dataset" ? row.dataset_url : row.demo_url;
+        if (!raw) return json({ error: "not_found" }, 404);
+        return streamListingFile(env, raw, slug, kind);
       }
 
       // Debug: show exact redirect_uri being sent
@@ -211,9 +276,11 @@ export default {
       // Auth: login
       if (path === "/api/auth/login" && method === "GET") {
         const redirectUri = getRedirectUri(env);
+        const next = safeNext(url.searchParams.get("next"));
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${env.GOOGLE_CLIENT_ID}` +
           `&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code` +
-          `&scope=openid+email+profile&prompt=consent`;
+          `&scope=openid+email+profile&prompt=consent` +
+          `&state=${encodeURIComponent(next)}`;
         return Response.redirect(authUrl, 302);
       }
 
@@ -254,7 +321,7 @@ export default {
           status: 302,
           headers: {
             "set-cookie": `session=${token}; HttpOnly; Secure; Path=/; Max-Age=604800`,
-            location: "/dashboard",
+            location: safeNext(url.searchParams.get("state")),
           },
         });
       }
@@ -284,3 +351,39 @@ export default {
     }
   },
 };
+
+async function streamListingFile(env: Env, raw: string, slug: string, kind: string): Promise<Response> {
+  const filename = `${slug}-${kind}.zip`;
+  const headers: Record<string, string> = {
+    "content-disposition": `attachment; filename="${filename}"`,
+    "cache-control": "private, no-store",
+  };
+  let key: string | null = null;
+  if (raw.startsWith("r2:")) key = raw.slice(3);
+  else {
+    const m = raw.match(/\.r2\.dev\/(.+)$/);
+    if (m) key = m[1];
+  }
+  if (key && env.BUCKET) {
+    const obj = await env.BUCKET.get(key);
+    if (obj) {
+      return new Response(obj.body, {
+        headers: {
+          ...headers,
+          "content-type": obj.httpMetadata?.contentType || "application/zip",
+        },
+      });
+    }
+  }
+  if (/^https?:\/\//i.test(raw)) {
+    const up = await fetch(raw);
+    if (!up.ok || !up.body) return json({ error: "upstream_failed" }, 502);
+    return new Response(up.body, {
+      headers: {
+        ...headers,
+        "content-type": up.headers.get("content-type") || "application/zip",
+      },
+    });
+  }
+  return json({ error: "not_found" }, 404);
+}

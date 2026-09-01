@@ -16,31 +16,32 @@ INSERT OR IGNORE INTO categories (id, name, slug, icon, sort_order, parent_id, d
   ('cat-rl',     '强化学习',     'reinforcement-learning', '🎮', 1, 'cat-grad',   '侧重 MVP 原型的研发与训练：DQN、PPO 等算法一站式实验环境。');
 
 -- ════════════════════════════════════════════════════════════
--- Sample apps (one per 主类)
+-- Sample apps (one per 主类) — English content is the DB source of truth;
+-- Chinese equivalents are overlaid client-side via the APP_ZH map (by slug).
 -- ════════════════════════════════════════════════════════════
 
 INSERT OR IGNORE INTO apps (id, slug, title, subtitle, category_id, summary, description, deep_info, tech_stack, demo_url, repo_url, featured, status) VALUES
-  ('app-1','deploykit','DeployKit','网站建好后的零配置一键部署',
+  ('app-1','deploykit','DeployKit','Zero-config one-click deployment after your site is built',
    'cat-deploy',
-   '把你的网站一键部署到 Cloudflare，零配置上线。',
-   'DeployKit 自动检测项目类型（React、Vue、纯静态），生成部署配置，一键推送到 Cloudflare Pages / Workers。附带自定义域名绑定、HTTPS 自动配置和部署状态实时监控。',
-   '进阶部署模板（多环境、CI/CD、缓存策略）、自定义 Worker 脚本、CDN 配置指南，以及常见框架的完整适配教程。',
+   'Deploy your website to Cloudflare with one click — zero config.',
+   'DeployKit auto-detects your project type (React, Vue, plain static), generates deploy config, and pushes to Cloudflare Pages / Workers in one click. Bundles custom domain binding, automatic HTTPS, and real-time deploy status monitoring.',
+   'Advanced deploy templates (multi-environment, CI/CD, caching strategy), custom Worker scripts, CDN config guide, and full adapter tutorials for common frameworks.',
    'Node.js, Wrangler, Cloudflare Pages', 'https://demo.ai4sci.app/deploykit',
    '[PAID: github.com/example/deploykit]', 1, 'published'),
 
-  ('app-2','nlp-skill-picker','NLP Skill Picker','按任务场景推荐 NLP 技能组合',
+  ('app-2','nlp-skill-picker','NLP Skill Picker','Recommends NLP skill combos by task scenario',
    'cat-nlp',
-   '输入你的工作任务，自动推荐最合适的 NLP 技能（Skill）组合。',
-   'NLP Skill Picker 内置文本分类、摘要、翻译、问答、实体抽取等技能库。根据你的具体场景（客服、写作、数据分析）智能匹配最佳 Skill 组合，附调用示例和成本估算。',
-   '完整 Skill 目录、技能组合模板、批量调用脚本、性能基准对比，以及各模型 API 接入文档。',
+   'Enter your work task and get the best-fit NLP skill (Skill) combination.',
+   'NLP Skill Picker ships a skill library for text classification, summarization, translation, QA, and entity extraction. It smart-matches the best Skill combo for your scenario (customer service, writing, data analysis) with call examples and cost estimates.',
+   'Full skill catalog, skill-combo templates, batch-call scripts, performance benchmarks, and API integration docs for each model.',
    'Python, Transformers, LangChain', 'https://demo.ai4sci.app/nlp-skill-picker',
    '[PAID: github.com/example/nlp-skill-picker]', 0, 'published'),
 
-  ('app-3','rl-gym-trainer','RL-Gym Trainer','强化学习 MVP 原型训练环境',
+  ('app-3','rl-gym-trainer','RL-Gym Trainer','Reinforcement-learning MVP training sandbox',
    'cat-rl',
-   '快速搭建强化学习实验，从 DQN 到 PPO 一键跑通 MVP 原型。',
-   'RL-Gym Trainer 封装了主流强化学习算法，提供标准 Gymnasium 接口、可视化训练曲线和自动超参搜索。适合研究生快速验证 RL 论文思路，不需要从零搭环境。',
-   '完整训练 notebook、预训练模型权重、基准数据集、自动调参脚本，以及云端 GPU 训练接入文档。',
+   'Spin up reinforcement-learning experiments fast — run DQN to PPO in one click.',
+   'RL-Gym Trainer wraps mainstream RL algorithms with a standard Gymnasium interface, visualized training curves, and automatic hyperparameter search. Great for grad students validating RL paper ideas without building an environment from scratch.',
+   'Full training notebooks, pretrained model weights, benchmark datasets, auto-tuning scripts, and cloud GPU training integration docs.',
    'Python, PyTorch, Gymnasium', 'https://demo.ai4sci.app/rl-gym-trainer',
    '[PAID: github.com/example/rl-gym-trainer]', 0, 'published');
 

@@ -2,7 +2,7 @@
  * UGC submission + admin review + waitlist endpoints
  */
 
-import { json } from "./util";
+import { json, getUser, Env, SessionUser } from "./util";
 
 /** Resolve the requested category ids into a clean array, accepting both the new
  *  category_ids array and the legacy single category_id. */
@@ -112,19 +112,22 @@ export async function handleUgc(request: Request, env: Env): Promise<Response> {
     return json({ status: action === "approve" ? "published" : "rejected" });
   }
 
-  // --- Waitlist: join the Pro+ early access waiting list ---
+  // --- Waitlist: join Pro+ list, or a per-listing list that unlocks downloads ---
   if (path === "/api/waitlist" && method === "POST") {
-    const body = await request.json() as { email?: string; source?: string };
-    const email = (body.email || "").trim().toLowerCase();
+    const user = await getUser(request, env);
+    const body = await request.json() as { email?: string; source?: string; app_slug?: string };
+    const appSlug = (body.app_slug || "").trim() || null;
+    if (appSlug && user.tier < 1) return json({ error: "login_required" }, 401);
+    const email = (user.email || body.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) return json({ error: "invalid_email" }, 400);
     try {
       await env.DB.prepare(
-        "INSERT INTO waitlist (email, source) VALUES (?, ?)"
-      ).bind(email, body.source || "pricing").run();
+        "INSERT INTO waitlist (email, source, user_id, app_slug) VALUES (?, ?, ?, ?)"
+      ).bind(email, body.source || "pricing", user.userId || null, appSlug).run();
     } catch {
-      return json({ ok: true, message: "already_on_waitlist" });
+      return json({ ok: true, message: "already_on_waitlist", joined_waitlist: true });
     }
-    return json({ ok: true, message: "joined" }, 201);
+    return json({ ok: true, message: "joined", joined_waitlist: true }, 201);
   }
 
   // --- Reviews: list + post ---

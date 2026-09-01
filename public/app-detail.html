@@ -12,6 +12,8 @@
     .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
     .nav-links{display:flex;gap:24px;align-items:center}
     .nav-links a{color:var(--muted);font-size:14px;text-decoration:none}
+    .lang-btn{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);font-size:13px;cursor:pointer;line-height:1}
+    .lang-btn:hover{border-color:var(--accent);background:rgba(99,102,241,.1)}
     .detail{max-width:800px;margin:0 auto;padding:40px 24px}
     .hero-cover{height:200px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:64px;margin-bottom:24px}
     h1{font-size:32px;margin-bottom:4px}
@@ -48,6 +50,7 @@
       <a href="/apps">Browse</a>
       <a href="/submit">Submit</a>
       <a href="/pricing">Pricing</a>
+      <button class="lang-btn" id="lang-toggle" onclick="toggleLang()">中文</button>
     </div>
   </nav>
   <div class="detail">
@@ -57,40 +60,137 @@
     <div class="cats" id="app-cats"></div>
     <div class="badges" id="badges"></div>
 
-    <div class="section"><h2>Overview</h2><p id="app-summary"></p></div>
+    <div class="section"><h2 id="h-overview">Overview</h2><p id="app-summary"></p></div>
 
     <div id="detail-section" class="section" style="display:none">
-      <h2>Detailed Description</h2>
+      <h2 id="h-detail">Detailed Description</h2>
       <p id="app-description"></p>
       <div class="meta-grid" id="tech-meta"></div>
     </div>
     <div id="detail-locked" class="locked" style="display:none">
       <span class="locked-icon">🔐</span>
-      <div><strong>Sign in to view detailed description, tech stack, and demo links.</strong><br>
-      <a href="/api/auth/login" class="btn btn-gold" style="margin-top:8px">Sign in with Google</a></div>
+      <div><strong id="lock-msg">Sign in to view detailed description, tech stack, and demo links.</strong><br>
+      <a id="signin-next" href="/api/auth/login" class="btn btn-gold" style="margin-top:8px">Sign in with Google</a></div>
     </div>
 
     <div id="deep-section" class="section" style="display:none">
-      <h2>Deep Access (Pro+)</h2>
+      <h2 id="h-deep">Deep Access (Pro+)</h2>
       <div id="app-deep"></div>
       <div class="meta-grid" id="deep-meta"></div>
+    </div>
+    <div id="download-section" class="section" style="display:none">
+      <h2 id="h-download">Download</h2>
+      <div id="download-links"></div>
     </div>
     <div id="deep-locked" class="locked paid" style="display:none;flex-direction:column;align-items:stretch">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
         <span class="locked-icon">🔒</span>
-        <strong>Deep access (Pro+) is coming soon. Join the waiting list to get early access.</strong>
+        <div>
+          <strong id="wl-title">After joining the waiting list, you'll see the download link.</strong>
+          <div id="wl-sub" style="margin-top:6px;color:var(--muted);font-size:13px;font-weight:400">Join 前不展示 zip 地址。加入名单后，本页会出现 Download 按钮（由服务器代下，不暴露原始 URL）。</div>
+        </div>
       </div>
       <div style="display:flex;gap:8px">
         <input id="detail-wl-email" type="email" placeholder="your@email.com" style="flex:1;padding:10px;border-radius:8px;border:1px solid #1e293b;background:#0a0e1a;color:#e2e8f0;font-size:14px">
-        <button onclick="joinDetailWaitlist()" class="btn btn-accent" style="white-space:nowrap">Join List</button>
+        <button id="wl-btn" onclick="joinDetailWaitlist()" class="btn btn-accent" style="white-space:nowrap">Join Waiting List</button>
       </div>
       <p id="detail-wl-msg" style="margin-top:8px;font-size:13px;color:#94a3b8"></p>
     </div>
 
-    <div class="section"><h2>Reviews</h2><div class="reviews" id="reviews"><p style="color:var(--muted)">Loading reviews…</p></div></div>
+    <div class="section"><h2 id="h-reviews">Reviews</h2><div class="reviews" id="reviews"><p style="color:var(--muted)">Loading reviews…</p></div></div>
   </div>
   <script>
-    const slug = location.pathname.replace('/apps/','').replace('.html','');
+    // ── i18n (URL-driven: /cn/apps/<slug> → zh, else en) ──────────────
+    const PATH = location.pathname;
+    const isCN = /^\/cn\//.test(PATH);
+    let LANG = isCN ? 'zh' : 'en';
+
+    const I18N = {
+      en: {
+        'nav.browse':'Browse','nav.submit':'Submit','nav.pricing':'Pricing',
+        'h.overview':'Overview','h.detail':'Detailed Description','h.deep':'Deep Access (Pro+)',
+        'h.download':'Download','h.reviews':'Reviews',
+        'lock.msg':"Sign in to view detailed description, tech stack, and demo links.",
+        'wl.title':"After joining the waiting list, you'll see the download link.",
+        'wl.sub':"The zip URL is hidden until you join. Once on the list, a Download button appears on this page (served via the backend, original URL not exposed).",
+        'wl.btn':'Join Waiting List',
+        'wl.email':'your@email.com',
+        'live.prefix':'After email sign-in you can open the live site. ',
+        'download.demo':'Download demo zip','download.zip':'Download zip','download.unlocked':'Download unlocked.',
+        'reviews.empty':'No reviews yet.',
+        'notfound':'App not found',
+        'wl.joined':'Joined. Loading download…',
+        'signin':'Sign in','dashboard':'Dashboard',
+      },
+      zh: {
+        'nav.browse':'浏览','nav.submit':'提交','nav.pricing':'定价',
+        'h.overview':'概览','h.detail':'详细描述','h.deep':'深度访问 (Pro+)',
+        'h.download':'下载','h.reviews':'评价',
+        'lock.msg':'登录后可查看详细描述、技术栈和演示链接。',
+        'wl.title':'加入等候名单后，你将看到下载链接。',
+        'wl.sub':'加入名单前不展示 zip 地址。加入后本页会出现 Download 按钮（由服务器代下，不暴露原始 URL）。',
+        'wl.btn':'加入等候名单',
+        'wl.email':'你的邮箱@email.com',
+        'live.prefix':'邮箱登录后可打开实时站点。',
+        'download.demo':'下载演示 zip','download.zip':'下载 zip','download.unlocked':'下载已解锁。',
+        'reviews.empty':'暂无评价。',
+        'notfound':'未找到应用',
+        'wl.joined':'已加入，正在加载下载…',
+        'signin':'登录','dashboard':'控制台',
+      }
+    };
+    // slug → English category name (DB stores Chinese)
+    const CAT_EN = {
+      'beginners':'Beginners','professionals':'Professionals','grad-students':'Researchers',
+      'web-deployment':'Web Deployment','nlp':'NLP','reinforcement-learning':'Reinforcement Learning',
+    };
+    function t(k){ return (I18N[LANG]||I18N.en)[k] || k; }
+    function catName(c){ return CAT_EN[c.slug] || c.name; }
+
+    // Chinese content for app body fields, keyed by slug.
+    // English comes from the DB; zh pages overlay these. Add rows as new apps ship.
+    const APP_ZH = {};
+    // Chinese overlay disabled — listing copy stays English.
+        // Return zh overlay if present and language is zh, else the DB (english) value.
+    function appField(app, field){
+      if (LANG === 'zh' && APP_ZH[app.slug] && APP_ZH[app.slug][field] != null) return APP_ZH[app.slug][field];
+      return app[field] != null ? app[field] : '';
+    }
+
+    function applyStaticLang(){
+      document.documentElement.lang = LANG==='en' ? 'en' : 'zh-CN';
+      document.getElementById('lang-toggle').textContent = LANG==='en' ? '中文' : 'EN';
+      document.querySelector('a[href="/apps"]').textContent = t('nav.browse');
+      document.querySelector('a[href="/submit"]').textContent = t('nav.submit');
+      document.querySelector('a[href="/pricing"]').textContent = t('nav.pricing');
+      document.getElementById('h-overview').textContent = t('h.overview');
+      document.getElementById('h-detail').textContent = t('h.detail');
+      document.getElementById('h-deep').textContent = t('h.deep');
+      document.getElementById('h-download').textContent = t('h.download');
+      document.getElementById('h-reviews').textContent = t('h.reviews');
+      document.getElementById('lock-msg').textContent = t('lock.msg');
+      document.getElementById('wl-title').textContent = t('wl.title');
+      document.getElementById('wl-sub').textContent = t('wl.sub');
+      document.getElementById('wl-btn').textContent = t('wl.btn');
+      document.getElementById('detail-wl-email').placeholder = t('wl.email');
+    }
+
+    function toggleLang(){
+      // toggle language by rewriting the URL path (keeps slug, swaps /cn/ prefix)
+      const m = PATH.match(/^(\/cn)?\/apps\/([\w-]+)$/);
+      if (m) {
+        const newBase = LANG === 'en' ? '/cn/apps/' : '/apps/';
+        location.href = newBase + m[2];
+      } else {
+        LANG = LANG === 'en' ? 'zh' : 'en';
+        localStorage.setItem('ai4sci_lang', LANG);
+        applyStaticLang(); load();
+      }
+    }
+
+    // ── Data ──────────────────────────────────────────────
+    const slug = PATH.replace(/^\/cn/, '').replace('/apps/','').replace('.html','');
+
     async function load() {
       const [appRes, revRes, meRes] = await Promise.all([
         fetch(`/api/apps/${slug}`), fetch(`/api/apps/${slug}/reviews`), fetch('/api/me')
@@ -98,79 +198,133 @@
       const appData = await appRes.json();
       const revData = await revRes.json();
       const meData = await meRes.json();
-      if (appData.error) { document.body.innerHTML = '<div class="detail"><h1>App not found</h1></div>'; return; }
+      if (appData.error) { document.body.innerHTML = `<div class="detail"><h1>${t('notfound')}</h1></div>`; return; }
 
       const app = appData.app, tier = appData.user_tier;
       document.getElementById('meta-desc').setAttribute('content', app.summary);
       document.getElementById('canonical').setAttribute('href', 'https://ai4sci.app/apps/' + app.slug);
       document.getElementById('page-title').textContent = `${app.title} — ai4sci.app`;
       document.getElementById('app-title').textContent = app.title;
-      document.getElementById('app-subtitle').textContent = app.subtitle || '';
-      document.getElementById('app-summary').textContent = app.summary;
+      document.getElementById('app-subtitle').textContent = appField(app,'subtitle');
+      document.getElementById('app-summary').textContent = appField(app,'summary');
 
-      // Render multiple category tags (from the join table)
+      const hero = document.querySelector('.hero-cover');
+      if (hero && app.cover_r2_key) {
+        hero.innerHTML = '';
+        hero.style.background = 'none';
+        hero.style.height = 'auto';
+        const img = document.createElement('img');
+        img.src = '/api/apps/' + app.slug + '/cover';
+        img.alt = app.title || '';
+        img.style.width = '100%';
+        img.style.borderRadius = '16px';
+        img.style.display = 'block';
+        hero.appendChild(img);
+      }
+
+      // Render multiple category tags (i18n via slug→EN map)
       const cats = document.getElementById('app-cats');
       cats.innerHTML = '';
+      const catBase = LANG === 'zh' ? '/cn/' : '/';
       (app.categories || []).forEach(c => {
         const tag = document.createElement('a');
         tag.className = 'cat-tag';
-        tag.href = `/?category=${c.slug}`;
-        tag.textContent = `${c.icon || ''} ${c.name}`;
+        tag.href = `${catBase}?category=${c.slug}`;
+        tag.textContent = `${c.icon || ''} ${catName(c)}`;
         cats.appendChild(tag);
       });
 
-      const badges = document.getElementById('badges');
-      if (tier >= 1 && app.description) {
+      const signin = document.getElementById('signin-next');
+      if (signin) signin.href = '/api/auth/login?next=' + encodeURIComponent(location.pathname);
+
+      const loggedIn = !!(meData.user && meData.user.email);
+      if ((tier >= 1 || loggedIn) && app.description) {
         document.getElementById('detail-section').style.display = 'block';
-        document.getElementById('app-description').textContent = app.description;
+        const descEl = document.getElementById('app-description');
+        descEl.innerHTML = '';
+        const live = (app.description.match(/https?:\/\/[^\s]+/g) || []).find(u => u.indexOf('vercel.app') !== -1);
+        if (live) {
+          const row = document.createElement('p');
+          row.style.marginBottom = '12px';
+          row.appendChild(document.createTextNode(t('live.prefix')));
+          const a = document.createElement('a');
+          a.href = live; a.textContent = live; a.target = '_blank'; a.rel = 'noopener';
+          a.className = 'btn btn-accent';
+          a.style.marginLeft = '8px';
+          row.appendChild(a);
+          descEl.appendChild(row);
+        }
+        const rest = document.createElement('p');
+        const parts = String(appField(app,'description')).split(/(https?:\/\/[^\s]+)/g);
+        parts.forEach(function(p) {
+          if (/^https?:\/\//.test(p)) {
+            const a = document.createElement('a');
+            a.href = p; a.textContent = p; a.target = '_blank'; a.rel = 'noopener';
+            rest.appendChild(a);
+          } else {
+            rest.appendChild(document.createTextNode(p));
+          }
+        });
+        descEl.appendChild(rest);
         const meta = document.getElementById('tech-meta');
         if (app.tech_stack) meta.innerHTML += `<div>Tech: ${app.tech_stack}</div>`;
-        if (app.demo_url) meta.innerHTML += `<div>Demo: <a href="${app.demo_url}">${app.demo_url}</a></div>`;
       } else {
         document.getElementById('detail-locked').style.display = 'flex';
       }
 
       if (tier >= 2 && app.deep_info) {
         document.getElementById('deep-section').style.display = 'block';
-        document.getElementById('app-deep').textContent = app.deep_info;
+        document.getElementById('app-deep').textContent = appField(app,'deep_info');
         const dm = document.getElementById('deep-meta');
         if (app.repo_url) dm.innerHTML += `<div>Repo: <a href="${app.repo_url}">${app.repo_url}</a></div>`;
-        if (app.dataset_url) dm.innerHTML += `<div>Dataset: <a href="${app.dataset_url}">${app.dataset_url}</a></div>`;
-      } else if (tier >= 1) {
+      }
+
+      const hasFiles = app.has_demo || app.has_dataset;
+      if (hasFiles && app.joined_waitlist) {
+        const box = document.getElementById('download-links');
+        let html = '';
+        if (app.demo_download) html += `<a class="btn btn-accent" href="${app.demo_download}">${t('download.demo')}</a> `;
+        if (app.dataset_download) html += `<a class="btn btn-accent" href="${app.dataset_download}">${t('download.zip')}</a>`;
+        box.innerHTML = html || `<p style="color:var(--muted)">${t('download.unlocked')}</p>`;
+        document.getElementById('download-section').style.display = 'block';
+      } else if (hasFiles) {
         document.getElementById('deep-locked').style.display = 'flex';
+        if (meData.user && meData.user.email) {
+          document.getElementById('detail-wl-email').value = meData.user.email;
+        }
       }
 
       const revs = revData.reviews || [];
       document.getElementById('reviews').innerHTML = revs.length
         ? revs.map(r => `<div class="review"><div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div><span style="color:var(--muted);font-size:13px">${r.email}</span><p style="margin-top:4px">${r.comment||''}</p></div>`).join('')
-        : '<p style="color:var(--muted)">No reviews yet.</p>';
+        : `<p style="color:var(--muted)">${t('reviews.empty')}</p>`;
 
       const nav = document.getElementById('nav');
       if (meData.user) {
-        nav.innerHTML += `<span style="color:var(--muted);font-size:13px">tier: ${meData.user.tier}</span><a href="/dashboard">Dashboard</a>`;
+        nav.innerHTML += `<span style="color:var(--muted);font-size:13px">tier: ${meData.user.tier}</span><a href="/dashboard">${t('dashboard')}</a>`;
       } else {
-        nav.innerHTML += `<a href="/api/auth/login" style="color:var(--accent)">Sign in</a>`;
+        nav.innerHTML += `<a href="/api/auth/login?next=${encodeURIComponent(location.pathname)}" style="color:var(--accent)">${t('signin')}</a>`;
       }
     }
 
     async function joinDetailWaitlist() {
       var email = document.getElementById('detail-wl-email').value.trim();
       var msg = document.getElementById('detail-wl-msg');
-      if (!email || email.indexOf('@') === -1) {
-        msg.textContent = 'Please enter a valid email'; msg.style.color = '#ef4444'; return;
-      }
+      var me = await fetch('/api/me').then(r => r.json());
+      if (!me.user) { location.href = '/api/auth/login?next=' + encodeURIComponent(location.pathname); return; }
+      if (!email || email.indexOf('@') === -1) { msg.textContent = t('wl.email'); msg.style.color = '#ef4444'; return; }
       var res = await fetch('/api/waitlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, source: 'app-detail' })
+        credentials: 'same-origin',
+        body: JSON.stringify({ email: email, source: 'app-detail', app_slug: slug })
       });
       var data = await res.json();
-      if (data.ok) {
-        msg.textContent = "You're on the list! We'll email you when Pro+ launches.";
-        msg.style.color = '#4ade80';
-      } else {
-        msg.textContent = 'Something went wrong.'; msg.style.color = '#ef4444';
-      }
+      if (res.status === 401) { location.href = '/api/auth/login?next=' + encodeURIComponent(location.pathname); return; }
+      if (data.ok) { msg.textContent = t('wl.joined'); msg.style.color = '#4ade80'; load(); }
+      else { msg.textContent = data.error || 'Error'; msg.style.color = '#ef4444'; }
     }
+
+    applyStaticLang();
     load();
   </script>
 </body>

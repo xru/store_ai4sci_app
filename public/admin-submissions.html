@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Submissions — Admin — ai4sci.app</title>
+  <style>
+    :root{--bg:#0a0e1a;--card:#141b2d;--border:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--green:#4ade80;--red:#ef4444;--gold:#fbbf24}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text)}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border)}
+    .logo{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--accent),#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links a{color:var(--muted);font-size:14px;text-decoration:none;margin-left:24px}
+    .wrap{max-width:900px;margin:0 auto;padding:40px 24px}
+    h1{font-size:24px;margin-bottom:8px}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+    .item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px}
+    .item h2{font-size:18px;margin-bottom:4px}
+    .item .meta{font-size:13px;color:var(--muted);margin-bottom:8px}
+    .item .summary{font-size:14px;margin-bottom:12px}
+    .actions{display:flex;gap:8px}
+    .btn{padding:8px 16px;border:none;border-radius:8px;font-size:14px;cursor:pointer;text-decoration:none}
+    .btn-approve{background:var(--green);color:#000}
+    .btn-reject{background:var(--red);color:#fff}
+    .empty{color:var(--muted);padding:40px;text-align:center}
+    .gate{padding:16px;border-radius:10px;background:rgba(239,68,68,.1);border:1px solid var(--red);font-size:14px}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/admin.html" class="logo">← Admin</a>
+    <div class="nav-links">
+      <a href="/admin-categories.html">Categories</a>
+      <a href="/admin-submissions.html">Submissions</a>
+      <a href="/">← Site</a>
+    </div>
+  </nav>
+  <div class="wrap">
+    <div id="gate" class="gate">Checking access…</div>
+    <div id="content" style="display:none">
+      <h1>Pending Submissions</h1>
+      <p class="sub">Review and approve user-submitted apps</p>
+      <div id="list"><p class="empty">Loading…</p></div>
+    </div>
+  </div>
+  <script>
+    async function checkAccess() {
+      const res = await fetch('/api/me');
+      const data = await res.json();
+      const gate = document.getElementById('gate');
+      if (!data.user) { gate.innerHTML = '<a href="/api/auth/login">Sign in</a>'; return; }
+      if (data.user.role !== 'admin') { gate.innerHTML = 'Access denied. Admin required.'; return; }
+      gate.style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      await loadList();
+    }
+    async function loadList() {
+      const res = await fetch('/api/admin/submissions');
+      const data = await res.json();
+      const list = document.getElementById('list');
+      const subs = data.submissions || [];
+      if (!subs.length) { list.innerHTML = '<p class="empty">No pending submissions 🎉</p>'; return; }
+      list.innerHTML = subs.map(s => `
+        <div class="item" id="sub-${s.id}">
+          <h2>${s.title}</h2>
+          <div class="meta">${s.slug} · ${s.submitter_email} · ${new Date(s.created_at).toLocaleDateString()}</div>
+          <div class="summary">${s.summary}</div>
+          <div class="actions">
+            <button class="btn btn-approve" onclick="act('${s.id}','approve')">✓ Approve</button>
+            <button class="btn btn-reject" onclick="act('${s.id}','reject')">✕ Reject</button>
+          </div>
+        </div>`).join('');
+    }
+    async function act(id, action) {
+      const body = action === 'reject' ? JSON.stringify({reason:'Rejected by admin'}) : '{}';
+      const res = await fetch(`/api/admin/submissions/${id}/${action}`, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body
+      });
+      if (res.ok) {
+        document.getElementById('sub-'+id).style.opacity = '0.4';
+        document.getElementById('sub-'+id).innerHTML += '<p style="color:var(--green);margin-top:8px">✓ ' + action + 'd</p>';
+      } else { alert('Action failed'); }
+    }
+    checkAccess();
+  </script>
+</body>
+</html>
